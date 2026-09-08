@@ -51,7 +51,6 @@ function checkAuth() {
 async function handleLogin(e) {
     e.preventDefault();
     const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
     
     setLoading(true, 'login-btn', 'Ingresando...');
     hideAlert();
@@ -65,7 +64,7 @@ async function handleLogin(e) {
             .single();
 
         if (error || !data) {
-            throw new Error('Usuario o contrasena incorrectos');
+            throw new Error('Usuario no encontrado o inactivo');
         }
 
         state.user = {
