@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario Empresarial Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <!-- Pantalla de Login -->
+    <div id="login-screen" class="screen">
+        <div class="login-card">
+            <h2>Iniciar Sesion</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Usuario</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Contrasena</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" id="login-btn" class="btn-primary">Ingresar</button>
+                <div id="login-alert" class="alert hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Panel Principal -->
+    <div id="dashboard-screen" class="screen hidden">
+        <header class="navbar">
+            <span id="user-display-name">Usuario</span>
+            <button id="logout-btn" class="btn-secondary">Salir</button>
+        </header>
+        <main class="container">
+            <div class="search-bar-container">
+                <input type="text" id="search-input" placeholder="Buscar por nombre, codigo o escanear...">
+                <button id="scan-btn" class="btn-scan">Escanear</button>
+            </div>
+            <div id="loading-indicator" class="loading hidden">Cargando productos...</div>
+            <div id="product-list" class="product-grid"></div>
+        </main>
+    </div>
+
+    <!-- SDK Oficial de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>
