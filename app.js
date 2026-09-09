@@ -218,20 +218,20 @@ async function handleCreateUser(e) {
     const password = document.getElementById('new-user-password').value.trim();
 
     if (!companyId) {
-        alert('Por favor selecciona una empresa.');
+        alert('Por favor selecciona una empresa válida.');
         return;
     }
 
     try {
         const userId = crypto.randomUUID();
 
-        // Insertamos el usuario incluyendo el role_id requerido por tu tabla
+        // Insertamos el usuario asegurando que el tenant_id coincida exactamente con el seleccionado
         const { error: profileError } = await supabaseClient
             .from('users')
             .insert([{
                 id: userId,
-                tenant_id: companyId,
-                role_id: '00000000-0000-0000-0000-000000000001', // ID de rol estándar o el que use tu sistema
+                tenant_id: companyId, // ID exacto de la empresa seleccionada
+                role_id: '00000000-0000-0000-0000-000000000001', // Rol estándar por defecto
                 username: email,
                 password: password,
                 full_name: email.split('@')[0]
