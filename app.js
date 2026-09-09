@@ -11,14 +11,10 @@ let state = {
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
+    if (loginForm) loginForm.addEventListener('submit', handleLogin);
 
     const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
+    if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
@@ -32,6 +28,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Botón para abrir el panel de administración
+    const adminBtn = document.getElementById('admin-panel-btn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', () => {
+            document.getElementById('admin-modal').classList.remove('hidden');
+            cargarEmpresasEnSelect();
+        });
+    }
+
+    // Botón para cerrar el modal de administración
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+            document.getElementById('admin-modal').classList.add('hidden');
+        });
+    }
+
+    // Formularios del panel de administración
+    const createCompanyForm = document.getElementById('create-company-form');
+    if (createCompanyForm) createCompanyForm.addEventListener('submit', handleCreateCompany);
+
+    const createUserForm = document.getElementById('create-user-form');
+    if (createUserForm) createUserForm.addEventListener('submit', handleCreateUser);
+
     // Comprobar sesión activa nativa
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
         if (session) {
@@ -44,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- LOGIN NATIVO DE SUPABASE ---
 async function handleLogin(e) {
     e.preventDefault();
-    const emailInput = document.getElementById('username'); // Input usado como email
+    const emailInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
     
     const email = emailInput.value.trim();
@@ -88,16 +108,28 @@ async function showDashboard() {
     document.getElementById('dashboard-screen').classList.remove('hidden');
     
     const nameDisplay = document.getElementById('user-display-name');
-    if (nameDisplay && state.user) {
-        // Muestra el correo y un indicador si es el superadmin global
-        const roleLabel = state.user.email === 'altuna.g1@gmail.com' ? ' (SuperAdmin Global)' : '';
-        nameDisplay.textContent = state.user.email + roleLabel;
+    const adminBtn = document.getElementById('admin-panel-btn');
+
+    if (state.user) {
+        const isSuperAdmin = state.user.email === 'altuna.g1@gmail.com';
+        if (nameDisplay) {
+            nameDisplay.textContent = state.user.email + (isSuperAdmin ? ' (SuperAdmin Global)' : '');
+        }
+        
+        // Mostrar botón de administración solo si es el superadmin
+        if (adminBtn) {
+            if (isSuperAdmin) {
+                adminBtn.classList.remove('hidden');
+            } else {
+                adminBtn.classList.add('hidden');
+            }
+        }
     }
 
     await loadProducts();
 }
 
-// --- CARGAR PRODUCTOS MULTI-TENANT INTELIGENTE ---
+// --- CARGAR PRODUCTOS ---
 async function loadProducts() {
     const loadingIndicator = document.getElementById('loading-indicator');
     if (loadingIndicator) loadingIndicator.classList.remove('hidden');
@@ -105,7 +137,6 @@ async function loadProducts() {
     try {
         let query = supabaseClient.from('products').select('*');
 
-        // REGLA DE NEGOCIO: Si NO es el superadmin, filtramos por el tenant_id de su empresa
         if (state.user && state.user.email !== 'altuna.g1@gmail.com') {
             const { data: userData, error: userError } = await supabaseClient
                 .from('users')
@@ -114,7 +145,7 @@ async function loadProducts() {
                 .maybeSingle();
 
             if (userError || !userData || !userData.tenant_id) {
-                throw new Error('El usuario no está asociado a ninguna empresa (tenant_id).');
+                throw new Error('El usuario no está asociado a ninguna empresa.');
             }
 
             query = query.eq('tenant_id', userData.tenant_id);
@@ -127,18 +158,107 @@ async function loadProducts() {
         renderProducts(state.products);
     } catch (error) {
         console.error('Error al cargar productos:', error.message);
-        showAlert('Error al cargar la lista de productos: ' + error.message, 'error');
+        showAlert('Error al cargar la lista de productos', 'error');
     } finally {
         if (loadingIndicator) loadingIndicator.classList.add('hidden');
     }
 }
 
+// --- FUNCIONES DE ADMINISTRACIÓN ---
+
+async function handleCreateCompany(e) {
+    e.preventDefault();
+    const nameInput = document.getElementById('company-name');
+    const companyName = nameInput.value.trim();
+
+    try {
+        const tenantId = crypto.randomUUID();
+
+        const { error } = await supabaseClient
+            .from('companies')
+            .insert([{ id: tenantId, name: companyName }]);
+
+        if (error) throw error;
+
+        alert(`¡Empresa "${companyName}" creada con éxito!`);
+        nameInput.value = '';
+        cargarEmpresasEnSelect();
+    } catch (error) {
+        alert('Error al crear la empresa: ' + error.message);
+    }
+}
+
+async function cargarEmpresasEnSelect() {
+    const select = document.getElementById('company-select');
+    if (!select) return;
+
+    try {
+        select.innerHTML = `<option value="">Cargando empresas...</option>`;
+        
+        const { data, error } = await supabaseClient.from('companies').select('id, name');
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            select.innerHTML = `<option value="">No hay empresas registradas</option>`;
+            return;
+        }
+
+        select.innerHTML = `<option value="">Seleccione una empresa...</option>` + 
+            data.map(comp => `<option value="${comp.id}">${comp.name}</option>`).join('');
+    } catch (error) {
+        console.error('Error al cargar empresas:', error.message);
+        select.innerHTML = `<option value="">Error al cargar empresas</option>`;
+    }
+}
+
+async function handleCreateUser(e) {
+    e.preventDefault();
+    const companyId = document.getElementById('company-select').value;
+    const email = document.getElementById('new-user-email').value.trim();
+    const password = document.getElementById('new-user-password').value.trim();
+
+    if (!companyId) {
+        alert('Por favor selecciona una empresa.');
+        return;
+    }
+
+    try {
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password
+        });
+
+        if (authError) throw authError;
+
+        const userId = authData.user ? authData.user.id : null;
+
+        if (userId) {
+            const { error: profileError } = await supabaseClient
+                .from('users')
+                .upsert([{
+                    id: userId,
+                    tenant_id: companyId,
+                    username: email,
+                    full_name: email.split('@')[0]
+                }]);
+
+            if (profileError) throw profileError;
+        }
+
+        alert(`¡Usuario ${email} registrado y vinculado a la empresa con éxito!`);
+        document.getElementById('create-user-form').reset();
+    } catch (error) {
+        alert('Error al registrar usuario: ' + error.message);
+    }
+}
+
+// --- RENDERIZAR PRODUCTOS Y UTILIDADES ---
 function renderProducts(productsToRender) {
     const container = document.getElementById('product-list');
     if (!container) return;
 
     if (!productsToRender || productsToRender.length === 0) {
-        container.innerHTML = `<p class="no-products">No se encontraron productos.</p>`;
+        container.innerHTML = `<p class="no-products">No se encontraron empresas/productos para mostrar.</p>`;
         return;
     }
 
@@ -171,125 +291,4 @@ function hideAlert() {
     const alertDiv = document.getElementById('login-alert');
     if (!alertDiv) return;
     alertDiv.classList.add('hidden');
-}
-// --- FUNCIONES DE ADMINISTRACIÓN MULTI-TENANT ---
-
-// Abrir o cerrar el modal de administración
-function toggleAdminModal(show) {
-    const modal = document.getElementById('admin-modal');
-    if (!modal) return;
-    
-    if (show) {
-        modal.classList.remove('hidden');
-        cargarEmpresasEnSelect(); // Rellenar el select de empresas al abrir
-    } else {
-        modal.classList.add('hidden');
-    }
-}
-
-// Escuchadores para los formularios de administración cuando carga la página
-document.addEventListener('DOMContentLoaded', () => {
-    // Formulario para crear empresa
-    const createCompanyForm = document.getElementById('create-company-form');
-    if (createCompanyForm) {
-        createCompanyForm.addEventListener('submit', handleCreateCompany);
-    }
-
-    // Formulario para crear usuario vinculado
-    const createUserForm = document.getElementById('create-user-form');
-    if (createUserForm) {
-        createUserForm.addEventListener('submit', handleCreateUser);
-    }
-});
-
-// 1. Crear una nueva empresa
-async function handleCreateCompany(e) {
-    e.preventDefault();
-    const nameInput = document.getElementById('company-name');
-    const companyName = nameInput.value.trim();
-
-    try {
-        // Generamos un UUID único para el tenant de esta empresa
-        const tenantId = crypto.randomUUID();
-
-        const { error } = await supabaseClient
-            .from('companies')
-            .insert([{ id: tenantId, name: companyName }]);
-
-        if (error) throw error;
-
-        alert(`¡Empresa "${companyName}" creada con éxito! (ID/Tenant: ${tenantId})`);
-        nameInput.value = '';
-        cargarEmpresasEnSelect();
-    } catch (error) {
-        alert('Error al crear la empresa: ' + error.message);
-    }
-}
-
-// 2. Cargar empresas en el elemento <select> del formulario de usuarios
-async function cargarEmpresasEnSelect() {
-    const select = document.getElementById('company-select');
-    if (!select) return;
-
-    try {
-        const { data, error } = await supabaseClient.from('companies').select('id, name');
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-            select.innerHTML = `<option value="">No hay empresas registradas</option>`;
-            return;
-        }
-
-        select.innerHTML = `<option value="">Seleccione una empresa...</option>` + 
-            data.map(comp => `<option value="${comp.id}">${comp.name}</option>`).join('');
-    } catch (error) {
-        console.error('Error al cargar empresas:', error.message);
-    }
-}
-
-// 3. Crear usuario y asociarlo a la empresa seleccionada
-async function handleCreateUser(e) {
-    e.preventDefault();
-    const companyId = document.getElementById('company-select').value;
-    const email = document.getElementById('new-user-email').value.trim();
-    const password = document.getElementById('new-user-password').value.trim();
-
-    if (!companyId) {
-        alert('Por favor selecciona una empresa.');
-        return;
-    }
-
-    try {
-        // Nota: La creación de usuarios en Supabase Auth se realiza de forma segura.
-        // Como estamos desde el cliente, usamos signUp o insertamos en la tabla users directamente si el usuario ya fue autenticado.
-        // Idealmente, guardamos la relación en la tabla public.users vinculando su tenant_id.
-        
-        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-            email: email,
-            password: password
-        });
-
-        if (authError) throw authError;
-
-        const userId = authData.user ? authData.user.id : null;
-
-        if (userId) {
-            // Guardamos el registro en la tabla public.users amarrado a su tenant_id
-            const { error: profileError } = await supabaseClient
-                .from('users')
-                .upsert([{
-                    id: userId,
-                    tenant_id: companyId,
-                    username: email,
-                    full_name: email.split('@')[0]
-                }]);
-
-            if (profileError) throw profileError;
-        }
-
-        alert(`¡Usuario ${email} registrado y vinculado a la empresa exitosamente!`);
-        document.getElementById('create-user-form').reset();
-    } catch (error) {
-        alert('Error al registrar usuario: ' + error.message);
-    }
 }
