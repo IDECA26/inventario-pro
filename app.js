@@ -166,17 +166,18 @@ async function loadProducts() {
 
 // --- FUNCIONES DE ADMINISTRACIÓN ---
 
+// 1. Crear una nueva empresa y asegurarnos de capturar su ID real
 async function handleCreateCompany(e) {
     e.preventDefault();
     const nameInput = document.getElementById('company-name');
     const companyName = nameInput.value.trim();
 
     try {
-        const tenantId = crypto.randomUUID();
-
-        const { error } = await supabaseClient
+        // Insertamos la empresa y pedimos que nos devuelva el registro creado (.select())
+        const { data, error } = await supabaseClient
             .from('companies')
-            .insert([{ id: tenantId, name: companyName }]);
+            .insert([{ name: companyName }])
+            .select();
 
         if (error) throw error;
 
@@ -185,6 +186,45 @@ async function handleCreateCompany(e) {
         cargarEmpresasEnSelect();
     } catch (error) {
         alert('Error al crear la empresa: ' + error.message);
+    }
+}
+
+// 2. Registrar usuario usando el tenant_id (ID de la empresa) real
+async function handleCreateUser(e) {
+    e.preventDefault();
+    const companySelect = document.getElementById('company-select');
+    const companyId = companySelect.value; // Este es el UUID real de la empresa seleccionada
+    const email = document.getElementById('new-user-email').value.trim();
+    const password = document.getElementById('new-user-password').value.trim();
+
+    if (!companyId) {
+        alert('Por favor selecciona una empresa válida de la lista.');
+        return;
+    }
+
+    try {
+        const userId = crypto.randomUUID();
+
+        // Insertamos el usuario utilizando el companyId real como tenant_id
+        const { error: profileError } = await supabaseClient
+            .from('users')
+            .insert([{
+                id: userId,
+                tenant_id: companyId, // ID exacto y existente en la BD
+                role_id: 'standard_user', // O el texto/id del rol que use tu tabla roles
+                username: email,
+                password: password,
+                full_name: email.split('@')[0]
+            }]);
+
+        if (profileError) throw profileError;
+
+        alert(`¡Usuario ${email} registrado y vinculado a la empresa con éxito!`);
+        document.getElementById('create-user-form').reset();
+        document.getElementById('admin-modal').classList.add('hidden');
+    } catch (error) {
+        console.error("Detalle del error:", error);
+        alert('Error al registrar usuario en la base de datos: ' + error.message);
     }
 }
 
@@ -211,27 +251,29 @@ async function cargarEmpresasEnSelect() {
     }
 }
 
+// 2. Registrar usuario usando el tenant_id (ID de la empresa) real
 async function handleCreateUser(e) {
     e.preventDefault();
-    const companyId = document.getElementById('company-select').value;
+    const companySelect = document.getElementById('company-select');
+    const companyId = companySelect.value; // Este es el UUID real de la empresa seleccionada
     const email = document.getElementById('new-user-email').value.trim();
     const password = document.getElementById('new-user-password').value.trim();
 
     if (!companyId) {
-        alert('Por favor selecciona una empresa válida.');
+        alert('Por favor selecciona una empresa válida de la lista.');
         return;
     }
 
     try {
         const userId = crypto.randomUUID();
 
-        // Insertamos el usuario asegurando que el tenant_id coincida exactamente con el seleccionado
+        // Insertamos el usuario utilizando el companyId real como tenant_id
         const { error: profileError } = await supabaseClient
             .from('users')
             .insert([{
                 id: userId,
-                tenant_id: companyId, // ID exacto de la empresa seleccionada
-                role_id: '00000000-0000-0000-0000-000000000001', // Rol estándar por defecto
+                tenant_id: companyId, // ID exacto y existente en la BD
+                role_id: 'standard_user', // O el texto/id del rol que use tu tabla roles
                 username: email,
                 password: password,
                 full_name: email.split('@')[0]
@@ -243,6 +285,7 @@ async function handleCreateUser(e) {
         document.getElementById('create-user-form').reset();
         document.getElementById('admin-modal').classList.add('hidden');
     } catch (error) {
+        console.error("Detalle del error:", error);
         alert('Error al registrar usuario en la base de datos: ' + error.message);
     }
 }
