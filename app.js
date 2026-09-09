@@ -223,17 +223,17 @@ async function handleCreateUser(e) {
     }
 
     try {
-        // Generamos un ID único (UUID) para el nuevo usuario de la empresa
         const userId = crypto.randomUUID();
 
-        // Insertamos el usuario directamente en tu tabla public.users vinculándolo a su empresa (tenant_id)
+        // Insertamos el usuario incluyendo el role_id requerido por tu tabla
         const { error: profileError } = await supabaseClient
             .from('users')
             .insert([{
                 id: userId,
                 tenant_id: companyId,
+                role_id: '00000000-0000-0000-0000-000000000001', // ID de rol estándar o el que use tu sistema
                 username: email,
-                password: password, // O tu sistema de login personalizado si aplica
+                password: password,
                 full_name: email.split('@')[0]
             }]);
 
@@ -246,7 +246,6 @@ async function handleCreateUser(e) {
         alert('Error al registrar usuario en la base de datos: ' + error.message);
     }
 }
-
 // --- RENDERIZAR PRODUCTOS Y UTILIDADES ---
 function renderProducts(productsToRender) {
     const container = document.getElementById('product-list');
