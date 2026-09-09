@@ -172,3 +172,124 @@ function hideAlert() {
     if (!alertDiv) return;
     alertDiv.classList.add('hidden');
 }
+// --- FUNCIONES DE ADMINISTRACIÓN MULTI-TENANT ---
+
+// Abrir o cerrar el modal de administración
+function toggleAdminModal(show) {
+    const modal = document.getElementById('admin-modal');
+    if (!modal) return;
+    
+    if (show) {
+        modal.classList.remove('hidden');
+        cargarEmpresasEnSelect(); // Rellenar el select de empresas al abrir
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+// Escuchadores para los formularios de administración cuando carga la página
+document.addEventListener('DOMContentLoaded', () => {
+    // Formulario para crear empresa
+    const createCompanyForm = document.getElementById('create-company-form');
+    if (createCompanyForm) {
+        createCompanyForm.addEventListener('submit', handleCreateCompany);
+    }
+
+    // Formulario para crear usuario vinculado
+    const createUserForm = document.getElementById('create-user-form');
+    if (createUserForm) {
+        createUserForm.addEventListener('submit', handleCreateUser);
+    }
+});
+
+// 1. Crear una nueva empresa
+async function handleCreateCompany(e) {
+    e.preventDefault();
+    const nameInput = document.getElementById('company-name');
+    const companyName = nameInput.value.trim();
+
+    try {
+        // Generamos un UUID único para el tenant de esta empresa
+        const tenantId = crypto.randomUUID();
+
+        const { error } = await supabaseClient
+            .from('companies')
+            .insert([{ id: tenantId, name: companyName }]);
+
+        if (error) throw error;
+
+        alert(`¡Empresa "${companyName}" creada con éxito! (ID/Tenant: ${tenantId})`);
+        nameInput.value = '';
+        cargarEmpresasEnSelect();
+    } catch (error) {
+        alert('Error al crear la empresa: ' + error.message);
+    }
+}
+
+// 2. Cargar empresas en el elemento <select> del formulario de usuarios
+async function cargarEmpresasEnSelect() {
+    const select = document.getElementById('company-select');
+    if (!select) return;
+
+    try {
+        const { data, error } = await supabaseClient.from('companies').select('id, name');
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            select.innerHTML = `<option value="">No hay empresas registradas</option>`;
+            return;
+        }
+
+        select.innerHTML = `<option value="">Seleccione una empresa...</option>` + 
+            data.map(comp => `<option value="${comp.id}">${comp.name}</option>`).join('');
+    } catch (error) {
+        console.error('Error al cargar empresas:', error.message);
+    }
+}
+
+// 3. Crear usuario y asociarlo a la empresa seleccionada
+async function handleCreateUser(e) {
+    e.preventDefault();
+    const companyId = document.getElementById('company-select').value;
+    const email = document.getElementById('new-user-email').value.trim();
+    const password = document.getElementById('new-user-password').value.trim();
+
+    if (!companyId) {
+        alert('Por favor selecciona una empresa.');
+        return;
+    }
+
+    try {
+        // Nota: La creación de usuarios en Supabase Auth se realiza de forma segura.
+        // Como estamos desde el cliente, usamos signUp o insertamos en la tabla users directamente si el usuario ya fue autenticado.
+        // Idealmente, guardamos la relación en la tabla public.users vinculando su tenant_id.
+        
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password
+        });
+
+        if (authError) throw authError;
+
+        const userId = authData.user ? authData.user.id : null;
+
+        if (userId) {
+            // Guardamos el registro en la tabla public.users amarrado a su tenant_id
+            const { error: profileError } = await supabaseClient
+                .from('users')
+                .upsert([{
+                    id: userId,
+                    tenant_id: companyId,
+                    username: email,
+                    full_name: email.split('@')[0]
+                }]);
+
+            if (profileError) throw profileError;
+        }
+
+        alert(`¡Usuario ${email} registrado y vinculado a la empresa exitosamente!`);
+        document.getElementById('create-user-form').reset();
+    } catch (error) {
+        alert('Error al registrar usuario: ' + error.message);
+    }
+}
