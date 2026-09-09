@@ -16,7 +16,6 @@ async function handleLogin(e) {
             throw new Error('Usuario no encontrado');
         }
 
-        // Asignamos los datos del usuario directamente al estado global
         state.user = {
             id: data.id,
             username: data.username,
@@ -31,5 +30,23 @@ async function handleLogin(e) {
         showAlert(error.message, 'error');
     } finally {
         setLoading(false, 'login-btn', 'Ingresar');
+    }
+}
+
+function showDashboard() {
+    const loginScreen = document.getElementById('login-screen') || document.querySelector('.screen');
+    if (loginScreen) {
+        loginScreen.classList.add('hidden');
+        loginScreen.style.display = 'none';
+    }
+
+    const dashboard = document.getElementById('dashboard') || document.querySelector('.container') || document.body;
+    if (dashboard) {
+        dashboard.classList.remove('hidden');
+        dashboard.style.display = 'block';
+    }
+
+    if (typeof loadProducts === 'function') {
+        loadProducts();
     }
 }
