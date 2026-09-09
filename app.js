@@ -180,3 +180,17 @@ document.addEventListener('DOMContentLoaded', () => {
         loginForm.addEventListener('submit', handleLogin);
     }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase().trim();
+            const filtered = state.products.filter(prod => 
+                (prod.name && prod.name.toLowerCase().includes(term)) || 
+                (prod.code && prod.code.toLowerCase().includes(term))
+            );
+            renderProducts(filtered);
+        });
+    }
+});
