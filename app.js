@@ -223,32 +223,27 @@ async function handleCreateUser(e) {
     }
 
     try {
-        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-            email: email,
-            password: password
-        });
+        // Generamos un ID único (UUID) para el nuevo usuario de la empresa
+        const userId = crypto.randomUUID();
 
-        if (authError) throw authError;
+        // Insertamos el usuario directamente en tu tabla public.users vinculándolo a su empresa (tenant_id)
+        const { error: profileError } = await supabaseClient
+            .from('users')
+            .insert([{
+                id: userId,
+                tenant_id: companyId,
+                username: email,
+                password: password, // O tu sistema de login personalizado si aplica
+                full_name: email.split('@')[0]
+            }]);
 
-        const userId = authData.user ? authData.user.id : null;
-
-        if (userId) {
-            const { error: profileError } = await supabaseClient
-                .from('users')
-                .upsert([{
-                    id: userId,
-                    tenant_id: companyId,
-                    username: email,
-                    full_name: email.split('@')[0]
-                }]);
-
-            if (profileError) throw profileError;
-        }
+        if (profileError) throw profileError;
 
         alert(`¡Usuario ${email} registrado y vinculado a la empresa con éxito!`);
         document.getElementById('create-user-form').reset();
+        document.getElementById('admin-modal').classList.add('hidden');
     } catch (error) {
-        alert('Error al registrar usuario: ' + error.message);
+        alert('Error al registrar usuario en la base de datos: ' + error.message);
     }
 }
 
