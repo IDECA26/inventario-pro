@@ -31,31 +31,30 @@ document.addEventListener('DOMContentLoaded', () => {
 async function handleLogin(e) {
     e.preventDefault();
     const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim(); // Asegúrate de tener el input de contraseña vinculado
+    const password = document.getElementById('password').value.trim();
     
     setLoading(true, 'login-btn', 'Ingresando...');
     hideAlert();
     
     try {
-        // Llamamos a la función segura de Supabase que valida bcrypt o el campo cifrado
-        const { data, error } = await supabaseClient.rpc('login_user', {
-            p_username: username,
-            p_password: password
-        });
+        // Consulta directa y limpia a la tabla users
+        const { data, error } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('username', username)
+            .eq('password', password) // Valida usuario y contraseña directo
+            .single();
 
-        if (error || !data || data.length === 0) {
+        if (error || !data) {
             throw new Error('Usuario o contraseña incorrectos');
         }
 
-        // data es un array, tomamos el primer resultado
-        const userRecord = data[0];
-
         state.user = {
-            id: userRecord.id,
-            username: userRecord.username,
-            full_name: userRecord.full_name,
-            tenant_id: userRecord.tenant_id,
-            role_id: userRecord.role_id
+            id: data.id,
+            username: data.username,
+            full_name: data.full_name,
+            tenant_id: data.tenant_id,
+            role_id: data.role_id
         };
 
         localStorage.setItem('inventory_user', JSON.stringify(state.user));
