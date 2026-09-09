@@ -166,16 +166,15 @@ async function loadProducts() {
 
 // --- FUNCIONES DE ADMINISTRACIÓN ---
 
-// 1. Crear una nueva empresa y asegurarnos de capturar su ID real
+// 1. Crear una nueva empresa en la tabla 'tenants'
 async function handleCreateCompany(e) {
     e.preventDefault();
     const nameInput = document.getElementById('company-name');
     const companyName = nameInput.value.trim();
 
     try {
-        // Insertamos la empresa y pedimos que nos devuelva el registro creado (.select())
         const { data, error } = await supabaseClient
-            .from('companies')
+            .from('tenants')
             .insert([{ name: companyName }])
             .select();
 
@@ -189,45 +188,7 @@ async function handleCreateCompany(e) {
     }
 }
 
-// 2. Registrar usuario usando el tenant_id (ID de la empresa) real
-async function handleCreateUser(e) {
-    e.preventDefault();
-    const companySelect = document.getElementById('company-select');
-    const companyId = companySelect.value; // Este es el UUID real de la empresa seleccionada
-    const email = document.getElementById('new-user-email').value.trim();
-    const password = document.getElementById('new-user-password').value.trim();
-
-    if (!companyId) {
-        alert('Por favor selecciona una empresa válida de la lista.');
-        return;
-    }
-
-    try {
-        const userId = crypto.randomUUID();
-
-        // Insertamos el usuario utilizando el companyId real como tenant_id
-        const { error: profileError } = await supabaseClient
-            .from('users')
-            .insert([{
-                id: userId,
-                tenant_id: companyId, // ID exacto y existente en la BD
-                role_id: 'standard_user', // O el texto/id del rol que use tu tabla roles
-                username: email,
-                password: password,
-                full_name: email.split('@')[0]
-            }]);
-
-        if (profileError) throw profileError;
-
-        alert(`¡Usuario ${email} registrado y vinculado a la empresa con éxito!`);
-        document.getElementById('create-user-form').reset();
-        document.getElementById('admin-modal').classList.add('hidden');
-    } catch (error) {
-        console.error("Detalle del error:", error);
-        alert('Error al registrar usuario en la base de datos: ' + error.message);
-    }
-}
-
+// 2. Cargar empresas desde la tabla 'tenants' para el select
 async function cargarEmpresasEnSelect() {
     const select = document.getElementById('company-select');
     if (!select) return;
@@ -235,7 +196,10 @@ async function cargarEmpresasEnSelect() {
     try {
         select.innerHTML = `<option value="">Cargando empresas...</option>`;
         
-        const { data, error } = await supabaseClient.from('companies').select('id, name');
+        const { data, error } = await supabaseClient
+            .from('tenants')
+            .select('id, name');
+            
         if (error) throw error;
 
         if (!data || data.length === 0) {
@@ -251,11 +215,11 @@ async function cargarEmpresasEnSelect() {
     }
 }
 
-// 2. Registrar usuario usando el tenant_id (ID de la empresa) real
+// 3. Registrar usuario usando el tenant_id real de la tabla 'tenants'
 async function handleCreateUser(e) {
     e.preventDefault();
     const companySelect = document.getElementById('company-select');
-    const companyId = companySelect.value; // Este es el UUID real de la empresa seleccionada
+    const companyId = companySelect.value;
     const email = document.getElementById('new-user-email').value.trim();
     const password = document.getElementById('new-user-password').value.trim();
 
@@ -267,13 +231,12 @@ async function handleCreateUser(e) {
     try {
         const userId = crypto.randomUUID();
 
-        // Insertamos el usuario utilizando el companyId real como tenant_id
         const { error: profileError } = await supabaseClient
             .from('users')
             .insert([{
                 id: userId,
-                tenant_id: companyId, // ID exacto y existente en la BD
-                role_id: 'standard_user', // O el texto/id del rol que use tu tabla roles
+                tenant_id: companyId,
+                role_id: 'standard_user',
                 username: email,
                 password: password,
                 full_name: email.split('@')[0]
@@ -289,6 +252,7 @@ async function handleCreateUser(e) {
         alert('Error al registrar usuario en la base de datos: ' + error.message);
     }
 }
+
 // --- RENDERIZAR PRODUCTOS Y UTILIDADES ---
 function renderProducts(productsToRender) {
     const container = document.getElementById('product-list');
