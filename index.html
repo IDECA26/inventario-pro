@@ -3,44 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventario Empresarial Pro</title>
+    <title>Inventario Pro</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
 </head>
 <body>
     <!-- Pantalla de Login -->
-    <div id="login-screen" class="screen">
+    <div id="login-screen">
         <div class="login-card">
-            <h2>Iniciar Sesion</h2>
+            <h1>Inventario Pro</h1>
+            <div id="login-alert" class="alert alert-error hidden"></div>
             <form id="login-form">
                 <div class="form-group">
                     <label for="username">Usuario</label>
-                    <input type="text" id="username" required>
+                    <input type="text" id="username" required autocomplete="username">
                 </div>
                 <div class="form-group">
                     <label for="password">Contrasena</label>
-                    <input type="password" id="password" required>
+                    <input type="password" id="password" required autocomplete="current-password">
                 </div>
-                <button type="submit" id="login-btn" class="btn-primary">Ingresar</button>
-                <div id="login-alert" class="alert hidden"></div>
+                <button type="submit" class="btn" id="login-btn">Iniciar Sesion</button>
             </form>
         </div>
     </div>
 
     <!-- Panel Principal -->
-    <div id="dashboard-screen" class="screen hidden">
-        <header class="navbar">
-            <span id="user-display-name">Usuario</span>
-            <button id="logout-btn" class="btn-secondary">Salir</button>
+    <div id="dashboard-screen" class="hidden">
+        <header>
+            <div class="user-info"><span id="user-display-name">Cargando...</span></div>
+            <button class="btn btn-logout" id="logout-btn">Salir</button>
         </header>
-        <main class="container">
-            <div class="search-bar-container">
+        <div class="container">
+            <div class="search-bar">
                 <input type="text" id="search-input" placeholder="Buscar por nombre, codigo o escanear...">
-                <button id="scan-btn" class="btn-scan">Escanear</button>
+                <button class="btn btn-scan" id="scan-btn">
+                    <span class="material-icons-round">qr_code_scanner</span>
+                </button>
             </div>
             <div id="loading-indicator" class="loading hidden">Cargando productos...</div>
-            <div id="product-list" class="product-grid"></div>
-        </main>
+            <div id="product-list" class="product-list"></div>
+        </div>
     </div>
 
     <!-- SDK Oficial de Supabase -->
