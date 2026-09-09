@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- LOGIN NATIVO DE SUPABASE ---
 async function handleLogin(e) {
     e.preventDefault();
-    const emailInput = document.getElementById('username'); // Usamos el input de usuario como email
+    const emailInput = document.getElementById('username'); // Input usado como email
     const passwordInput = document.getElementById('password');
     
     const email = emailInput.value.trim();
@@ -89,26 +89,45 @@ async function showDashboard() {
     
     const nameDisplay = document.getElementById('user-display-name');
     if (nameDisplay && state.user) {
-        nameDisplay.textContent = state.user.email;
+        // Muestra el correo y un indicador si es el superadmin global
+        const roleLabel = state.user.email === 'altuna.g1@gmail.com' ? ' (SuperAdmin Global)' : '';
+        nameDisplay.textContent = state.user.email + roleLabel;
     }
 
     await loadProducts();
 }
 
+// --- CARGAR PRODUCTOS MULTI-TENANT INTELIGENTE ---
 async function loadProducts() {
     const loadingIndicator = document.getElementById('loading-indicator');
     if (loadingIndicator) loadingIndicator.classList.remove('hidden');
 
     try {
-        const { data, error } = await supabaseClient.from('products').select('*');
+        let query = supabaseClient.from('products').select('*');
 
+        // REGLA DE NEGOCIO: Si NO es el superadmin, filtramos por el tenant_id de su empresa
+        if (state.user && state.user.email !== 'altuna.g1@gmail.com') {
+            const { data: userData, error: userError } = await supabaseClient
+                .from('users')
+                .select('tenant_id')
+                .eq('id', state.user.id)
+                .maybeSingle();
+
+            if (userError || !userData || !userData.tenant_id) {
+                throw new Error('El usuario no está asociado a ninguna empresa (tenant_id).');
+            }
+
+            query = query.eq('tenant_id', userData.tenant_id);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
 
         state.products = data || [];
         renderProducts(state.products);
     } catch (error) {
         console.error('Error al cargar productos:', error.message);
-        showAlert('Error al cargar la lista de productos', 'error');
+        showAlert('Error al cargar la lista de productos: ' + error.message, 'error');
     } finally {
         if (loadingIndicator) loadingIndicator.classList.add('hidden');
     }
@@ -126,9 +145,9 @@ function renderProducts(productsToRender) {
     container.innerHTML = productsToRender.map(prod => `
         <div class="product-card">
             <h3>${prod.name || 'Sin nombre'}</h3>
-            <p><strong>Código:</strong> ${prod.code || 'N/A'}</p>
-            <p><strong>Stock:</strong> ${prod.stock ?? prod.quantity ?? 0}</p>
-            <p><strong>Precio:</strong> $${prod.price ?? 0.00}</p>
+            <p><strong>Código:</strong> ${prod.code || prod.manual_code || prod.barcode || 'N/A'}</p>
+            <p><strong>Stock:</strong> ${prod.stock ?? 0}</p>
+            <p><strong>Precio:</strong> $${prod.sale_price ?? 0.00}</p>
         </div>
     `).join('');
 }
