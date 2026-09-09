@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventario Pro</title>
+    <title>Inventario Pro - Multi-Tenant</title>
     <link rel="stylesheet" href="style.css">
-    <!-- SDK de Supabase actualizado y estable -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
 </head>
 <body>
@@ -16,8 +15,8 @@
             <h2>Inventario Pro</h2>
             <form id="login-form">
                 <div class="form-group">
-                    <label for="username">Usuario</label>
-                    <input type="text" id="username" required autocomplete="username">
+                    <label for="username">Correo Electrónico</label>
+                    <input type="email" id="username" required autocomplete="email" placeholder="usuario@correo.com">
                 </div>
                 <div class="form-group">
                     <label for="password">Contraseña</label>
@@ -35,7 +34,11 @@
             <div class="user-info">
                 <span id="user-display-name">Usuario</span>
             </div>
-            <button id="logout-btn" class="btn-secondary">Salir</button>
+            <div class="top-actions">
+                <!-- Botón visible solo para el Superadmin -->
+                <button id="admin-panel-btn" class="btn-secondary hidden" onclick="toggleAdminModal(true)">⚙️ Administrar Empresas/Usuarios</button>
+                <button id="logout-btn" class="btn-secondary">Salir</button>
+            </div>
         </header>
 
         <main class="main-container">
@@ -49,6 +52,53 @@
             <!-- Contenedor de la lista de productos -->
             <div id="product-list" class="product-grid"></div>
         </main>
+    </div>
+
+    <!-- MODAL DE ADMINISTRACIÓN (SUPERADMIN) -->
+    <div id="admin-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Panel de Administración Multi-Tenant</h3>
+                <button class="close-btn" onclick="toggleAdminModal(false)">&times;</button>
+            </div>
+            
+            <div class="admin-sections">
+                <!-- Sección 1: Registrar Empresa -->
+                <div class="admin-card">
+                    <h4>Registrar Nueva Empresa (Tenant)</h4>
+                    <form id="create-company-form">
+                        <div class="form-group">
+                            <label>Nombre de la Empresa</label>
+                            <input type="text" id="company-name" required placeholder="Ej. Distribuidora C.A.">
+                        </div>
+                        <button type="submit" class="btn-primary">Crear Empresa</button>
+                    </form>
+                </div>
+
+                <!-- Sección 2: Registrar Usuario y Asignarlo a Empresa -->
+                <div class="admin-card">
+                    <h4>Registrar Usuario por Empresa</h4>
+                    <form id="create-user-form">
+                        <div class="form-group">
+                            <label>Seleccionar Empresa</label>
+                            <select id="company-select" required>
+                                <option value="">Cargando empresas...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Correo del Usuario</label>
+                            <input type="email" id="new-user-email" required placeholder="usuario@empresa.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Contraseña Temporal</label>
+                            <input type="password" id="new-user-password" required placeholder="Mínimo 6 caracteres">
+                        </div>
+                        <button type="submit" class="btn-primary">Crear y Asignar Usuario</button>
+                    </form>
+                </div>
+            </div>
+            <div id="admin-alert" class="alert hidden"></div>
+        </div>
     </div>
 
     <script src="app.js"></script>
