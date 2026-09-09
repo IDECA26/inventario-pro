@@ -170,3 +170,10 @@ function renderProducts(products) {
         productList.appendChild(card);
     });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+    }
+});
