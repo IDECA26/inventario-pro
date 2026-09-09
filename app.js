@@ -4,13 +4,11 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// --- ESTADO GLOBAL DE LA APLICACIÓN ---
 let state = {
     user: null,
     products: []
 };
 
-// --- INICIALIZACIÓN AL CARGAR LA PÁGINA ---
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
@@ -34,66 +32,49 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const savedUser = localStorage.getItem('inventory_user');
-    if (savedUser) {
-        try {
-            state.user = JSON.parse(savedUser);
+    // Comprobar sesión activa nativa
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+            state.user = session.user;
             showDashboard();
-        } catch (e) {
-            localStorage.removeItem('inventory_user');
         }
-    }
+    });
 });
 
-// --- FUNCIÓN DE LOGIN ---
+// --- LOGIN NATIVO DE SUPABASE ---
 async function handleLogin(e) {
     e.preventDefault();
-    const usernameInput = document.getElementById('username');
+    const emailInput = document.getElementById('username'); // Usamos el input de usuario como email
     const passwordInput = document.getElementById('password');
     
-    const username = usernameInput.value.trim();
+    const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
     
     setLoadingLogin(true, 'Ingresando...');
     hideAlert();
     
     try {
-        const { data, error } = await supabaseClient
-            .from('users')
-            .select('*')
-            .eq('username', username)
-            .eq('password', password)
-            .maybeSingle(); // Usamos maybeSingle para evitar excepciones si no coincide exacto
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
 
-        if (error) {
-            throw new Error(error.message);
-        }
+        if (error) throw error;
 
-        if (!data) {
-            throw new Error('Usuario o contraseña incorrectos');
-        }
-
-        state.user = {
-            id: data.id,
-            username: data.username,
-            full_name: data.full_name || data.username,
-            tenant_id: data.tenant_id
-        };
-
-        localStorage.setItem('inventory_user', JSON.stringify(state.user));
+        state.user = data.user;
         showDashboard();
     } catch (error) {
-        showAlert(error.message, 'error');
+        showAlert('Correo o contraseña incorrectos', 'error');
     } finally {
         setLoadingLogin(false, 'Ingresar');
     }
 }
 
-// --- FUNCIÓN DE LOGOUT ---
-function handleLogout() {
+// --- LOGOUT NATIVO ---
+async function handleLogout() {
+    await supabaseClient.auth.signOut();
     state.user = null;
     state.products = [];
-    localStorage.removeItem('inventory_user');
     
     const loginForm = document.getElementById('login-form');
     if (loginForm) loginForm.reset();
@@ -102,32 +83,24 @@ function handleLogout() {
     document.getElementById('login-screen').classList.remove('hidden');
 }
 
-// --- CAMBIAR A VISTA DE DASHBOARD ---
 async function showDashboard() {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('dashboard-screen').classList.remove('hidden');
     
     const nameDisplay = document.getElementById('user-display-name');
     if (nameDisplay && state.user) {
-        nameDisplay.textContent = state.user.full_name || state.user.username;
+        nameDisplay.textContent = state.user.email;
     }
 
     await loadProducts();
 }
 
-// --- CARGAR PRODUCTOS DESDE SUPABASE ---
 async function loadProducts() {
     const loadingIndicator = document.getElementById('loading-indicator');
     if (loadingIndicator) loadingIndicator.classList.remove('hidden');
 
     try {
-        let query = supabaseClient.from('products').select('*');
-        
-        if (state.user && state.user.tenant_id) {
-            query = query.eq('tenant_id', state.user.tenant_id);
-        }
-
-        const { data, error } = await query;
+        const { data, error } = await supabaseClient.from('products').select('*');
 
         if (error) throw error;
 
@@ -141,7 +114,6 @@ async function loadProducts() {
     }
 }
 
-// --- RENDERIZAR PRODUCTOS ---
 function renderProducts(productsToRender) {
     const container = document.getElementById('product-list');
     if (!container) return;
@@ -161,7 +133,6 @@ function renderProducts(productsToRender) {
     `).join('');
 }
 
-// --- UTILIDADES ---
 function setLoadingLogin(isLoading, text) {
     const btn = document.getElementById('login-btn');
     if (!btn) return;
