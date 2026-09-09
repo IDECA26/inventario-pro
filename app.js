@@ -12,19 +12,16 @@ let state = {
 
 // --- INICIALIZACIÓN AL CARGAR LA PÁGINA ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Vincular evento de login
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
     }
 
-    // 2. Vincular evento de logout
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleLogout);
     }
 
-    // 3. Vincular buscador en tiempo real
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -37,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 4. Comprobar si ya había una sesión guardada localmente
     const savedUser = localStorage.getItem('inventory_user');
     if (savedUser) {
         try {
@@ -62,15 +58,18 @@ async function handleLogin(e) {
     hideAlert();
     
     try {
-        // Consulta directa validando usuario y contraseña en texto plano
         const { data, error } = await supabaseClient
             .from('users')
             .select('*')
             .eq('username', username)
             .eq('password', password)
-            .single();
+            .maybeSingle(); // Usamos maybeSingle para evitar excepciones si no coincide exacto
 
-        if (error || !data) {
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        if (!data) {
             throw new Error('Usuario o contraseña incorrectos');
         }
 
@@ -96,7 +95,6 @@ function handleLogout() {
     state.products = [];
     localStorage.removeItem('inventory_user');
     
-    // Limpiar campos de login
     const loginForm = document.getElementById('login-form');
     if (loginForm) loginForm.reset();
 
@@ -125,7 +123,6 @@ async function loadProducts() {
     try {
         let query = supabaseClient.from('products').select('*');
         
-        // Si la tabla usa tenant_id, filtramos por el del usuario actual de forma segura
         if (state.user && state.user.tenant_id) {
             query = query.eq('tenant_id', state.user.tenant_id);
         }
@@ -144,7 +141,7 @@ async function loadProducts() {
     }
 }
 
-// --- RENDERIZAR PRODUCTOS EN LA PANTALLA ---
+// --- RENDERIZAR PRODUCTOS ---
 function renderProducts(productsToRender) {
     const container = document.getElementById('product-list');
     if (!container) return;
@@ -164,7 +161,7 @@ function renderProducts(productsToRender) {
     `).join('');
 }
 
-// --- UTILIDADES DE INTERFAZ ---
+// --- UTILIDADES ---
 function setLoadingLogin(isLoading, text) {
     const btn = document.getElementById('login-btn');
     if (!btn) return;
