@@ -28,157 +28,183 @@
         </div>
     </div>
 
-    <!-- PANTALLA PRINCIPAL / DASHBOARD -->
+    <!-- PANTALLA PRINCIPAL / DASHBOARD CON PESTAÑAS -->
     <div id="dashboard-screen" class="screen hidden">
         <header class="top-bar">
             <div class="user-info">
                 <span id="user-display-name">Usuario</span>
             </div>
             <div class="top-actions">
-                <button id="admin-panel-btn" class="btn-secondary hidden">⚙️ Administrar Empresas</button>
                 <button id="logout-btn" class="btn-secondary">Salir</button>
             </div>
         </header>
 
+        <!-- BARRA DE NAVEGACIÓN POR PESTAÑAS -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-target="tab-inventory">📦 Productos</button>
+            <button class="tab-btn" data-target="tab-ingress">📥 Ingreso Pro</button>
+            <button class="tab-btn" data-target="tab-tenant-stats">📊 Estadísticas Empresa</button>
+            <!-- Pestañas exclusivas de Superadmin -->
+            <button class="tab-btn superadmin-only hidden" data-target="tab-admin-users">⚙️ Admin Empresas/Usuarios</button>
+            <button class="tab-btn superadmin-only hidden" data-target="tab-global-audit">🛡️ Auditoría Global</button>
+        </nav>
+
         <main class="main-container">
-            <div class="search-bar-container">
-                <input type="text" id="search-input" placeholder="Buscar por nombre o código..." autocomplete="off">
-                <button id="scan-btn" class="btn-icon">📷 QR</button>
-            </div>
-
-            <div id="loading-indicator" class="loading hidden">Cargando productos...</div>
-            <div id="product-list" class="product-grid"></div>
-        </main>
-    </div>
-
-<!-- MÓDULO DE INGRESO DE MERCANCÍA PRO -->
-<section id="ingress-module" class="admin-card" style="margin-top: 20px;">
-    <h3>📦 Ingreso de Mercancía Pro</h3>
-    <form id="ingress-form">
-        <div class="form-group">
-            <label>Código de Barras o Código Manual</label>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="ingress-code" required placeholder="Escanee o escriba el código..." autocomplete="off">
-                <button type="button" id="search-master-btn" class="btn-secondary">Buscar</button>
-            </div>
-        </div>
-
-        <!-- Campos que se autocompletarán si el producto ya existe o se llenarán si es nuevo -->
-        <div class="form-group">
-            <label>Nombre del Producto</label>
-            <input type="text" id="ingress-name" required placeholder="Ej. Harina de Maíz 1kg">
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="form-group">
-                <label>Tipo de Ingreso</label>
-                <select id="ingress-type" required>
-                    <option value="compra">Compra a Proveedor / Nuevo</option>
-                    <option value="tránsito">Recepción en Tránsito</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Precio de Venta ($)</label>
-                <input type="number" step="0.01" id="ingress-price" value="0.00" required>
-            </div>
-        </div>
-
-        <!-- Factores de empaque (Para productos nuevos o edición) -->
-        <div style="background: #f8fafc; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
-            <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">Configuración de Empaques (Unidades por factor)</label>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 5px;">
-                <div>
-                    <label style="font-size: 0.75rem;">Unidades por Caja</label>
-                    <input type="number" id="factor-box" value="1" min="1">
-                </div>
-                <div>
-                    <label style="font-size: 0.75rem;">Unidades por Paquete</label>
-                    <input type="number" id="factor-pack" value="1" min="1">
-                </div>
-                <div>
-                    <label style="font-size: 0.75rem;">Unidades por Bulto/Saco</label>
-                    <input type="number" id="factor-bale" value="1" min="1">
-                </div>
-            </div>
-        </div>
-
-        <!-- Selección de cantidad por empaque -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="form-group">
-                <label>Seleccionar Empaque</label>
-                <select id="packaging-unit">
-                    <option value="unidad">Unidades Sueltas</option>
-                    <option value="caja">Cajas</option>
-                    <option value="paquete">Paquetes</option>
-                    <option value="bulto">Bultos / Sacos</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Cantidad de Empaques</label>
-                <input type="number" step="any" id="ingress-quantity" value="1" required min="0.01">
-            </div>
-        </div>
-
-        <button type="submit" class="btn-primary" style="width: 100%;">Registrar Ingreso de Mercancía</button>
-    </form>
-</section>
-    
-    <!-- MODAL DE ADMINISTRACIÓN (SUPERADMIN) -->
-    <div id="admin-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Panel de Administración Multi-Tenant</h3>
-                <button id="close-modal-btn" class="close-btn">&times;</button>
-            </div>
             
-            <div class="admin-sections">
-                <!-- Sección 1: Registrar Empresa -->
-                <div class="admin-card">
-                    <h4>Registrar Nueva Empresa (Tenant)</h4>
-                    <form id="create-company-form">
+            <!-- PESTAÑA 1: INVENTARIO / PRODUCTOS -->
+            <div id="tab-inventory" class="tab-content">
+                <div class="search-bar-container">
+                    <input type="text" id="search-input" placeholder="Buscar por nombre o código..." autocomplete="off">
+                    <button id="scan-btn" class="btn-icon">📷 QR</button>
+                </div>
+                <div id="loading-indicator" class="loading hidden">Cargando productos...</div>
+                <div id="product-list" class="product-grid"></div>
+            </div>
+
+            <!-- PESTAÑA 2: INGRESO DE MERCANCÍA PRO -->
+            <div id="tab-ingress" class="tab-content hidden">
+                <div class="admin-card" style="max-width: 700px; margin: 0 auto;">
+                    <h3>📥 Módulo de Ingreso de Mercancía Pro</h3>
+                    <form id="ingress-form">
                         <div class="form-group">
-                            <label>Nombre de la Empresa</label>
-                            <input type="text" id="company-name" required placeholder="Ej. Distribuidora C.A.">
+                            <label>Código de Barras o Código Manual</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="ingress-code" required placeholder="Escanee o escriba el código..." autocomplete="off">
+                                <button type="button" id="search-master-btn" class="btn-secondary">Buscar</button>
+                            </div>
                         </div>
-                        <button type="submit" class="btn-primary">Crear Empresa</button>
+
+                        <div class="form-group">
+                            <label>Nombre del Producto</label>
+                            <input type="text" id="ingress-name" required placeholder="Ej. Harina de Maíz 1kg">
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="form-group">
+                                <label>Tipo de Ingreso</label>
+                                <select id="ingress-type" required>
+                                    <option value="compra">Compra a Proveedor / Nuevo</option>
+                                    <option value="tránsito">Recepción en Tránsito</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Precio de Venta ($)</label>
+                                <input type="number" step="0.01" id="ingress-price" value="0.00" required>
+                            </div>
+                        </div>
+
+                        <div style="background: #f8fafc; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+                            <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">Configuración de Empaques (Unidades por factor)</label>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 5px;">
+                                <div>
+                                    <label style="font-size: 0.75rem;">Unidades por Caja</label>
+                                    <input type="number" id="factor-box" value="1" min="1">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem;">Unidades por Paquete</label>
+                                    <input type="number" id="factor-pack" value="1" min="1">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem;">Unidades por Bulto/Saco</label>
+                                    <input type="number" id="factor-bale" value="1" min="1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="form-group">
+                                <label>Seleccionar Empaque</label>
+                                <select id="packaging-unit">
+                                    <option value="unidad">Unidades Sueltas</option>
+                                    <option value="caja">Cajas</option>
+                                    <option value="paquete">Paquetes</option>
+                                    <option value="bulto">Bultos / Sacos</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Cantidad de Empaques</label>
+                                <input type="number" step="any" id="ingress-quantity" value="1" required min="0.01">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="width: 100%;">Registrar Ingreso de Mercancía</button>
                     </form>
                 </div>
+            </div>
 
-                <!-- Sección 2: Registrar Usuario y Asignarlo a Empresa -->
-                <div class="admin-card">
-                    <h4>Registrar Usuario por Empresa</h4>
-                    <form id="create-user-form">
-                        <div class="form-group">
-                            <label>Seleccionar Empresa</label>
-                            <select id="company-select" required>
-                                <option value="">Cargando empresas...</option>
-                            </select>
+            <!-- PESTAÑA 3: ESTADÍSTICAS MINUCIOSAS DE LA EMPRESA -->
+            <div id="tab-tenant-stats" class="tab-content hidden">
+                <div class="admin-card" style="max-width: 800px; margin: 0 auto;">
+                    <h3>📊 Resumen Estadístico de la Empresa</h3>
+                    <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Métricas exclusivas y control de inventario local asignado a tu empresa.</p>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <span class="stat-number" id="tenant-prod-count">0</span>
+                            <span class="stat-label">Productos Registrados</span>
                         </div>
-                        <div class="form-group">
-                            <label>Rol del Usuario</label>
-                            <select id="user-role-select" required[cite: 2]>
-                                <option value="">Cargando roles...</option>
-                            </select>
+                        <div class="stat-box">
+                            <span class="stat-number" id="tenant-total-stock">0</span>
+                            <span class="stat-label">Unidades Totales en Stock</span>
                         </div>
-                        <div class="form-group">
-                            <label>Correo del Usuario</label>
-                            <input type="email" id="new-user-email" required placeholder="usuario@empresa.com">
+                        <div class="stat-box">
+                            <span class="stat-number" id="tenant-inventory-value">$0.00</span>
+                            <span class="stat-label">Valor Estimado Inventario</span>
                         </div>
-                        <div class="form-group">
-                            <label>Contraseña Temporal</label>
-                            <input type="password" id="new-user-password" required placeholder="Mínimo 6 caracteres">
-                        </div>
-                        <button type="submit" class="btn-primary">Crear y Asignar Usuario</button>
-                    </form>
+                    </div>
                 </div>
+            </div>
 
-                <!-- Sección 3: Estadísticas y Auditoría Global -->
-                <div class="admin-card">
-                    <h4>Estadísticas del Sistema</h4>
+            <!-- PESTAÑA 4 (SUPERADMIN): GESTIÓN DE EMPRESAS Y USUARIOS -->
+            <div id="tab-admin-users" class="tab-content hidden">
+                <div class="admin-sections" style="grid-template-columns: 1fr 1fr;">
+                    <div class="admin-card">
+                        <h4>Registrar Nueva Empresa (Tenant)</h4>
+                        <form id="create-company-form">
+                            <div class="form-group">
+                                <label>Nombre de la Empresa</label>
+                                <input type="text" id="company-name" required placeholder="Ej. Distribuidora C.A.">
+                            </div>
+                            <button type="submit" class="btn-primary">Crear Empresa</button>
+                        </form>
+                    </div>
+
+                    <div class="admin-card">
+                        <h4>Registrar Usuario por Empresa</h4>
+                        <form id="create-user-form">
+                            <div class="form-group">
+                                <label>Seleccionar Empresa</label>
+                                <select id="company-select" required>
+                                    <option value="">Cargando empresas...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Rol del Usuario</label>
+                                <select id="user-role-select" required>
+                                    <option value="">Cargando roles...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Correo del Usuario</label>
+                                <input type="email" id="new-user-email" required placeholder="usuario@empresa.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Contraseña Temporal</label>
+                                <input type="password" id="new-user-password" required placeholder="Mínimo 6 caracteres">
+                            </div>
+                            <button type="submit" class="btn-primary">Crear y Asignar Usuario</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PESTAÑA 5 (SUPERADMIN): AUDITORÍA Y ESTADÍSTICAS GLOBALES -->
+            <div id="tab-global-audit" class="tab-content hidden">
+                <div class="admin-card" style="margin-bottom: 20px;">
+                    <h4>Estadísticas Globales del Sistema</h4>
                     <div class="stats-grid">
                         <div class="stat-box">
                             <span class="stat-number" id="stat-tenants">0</span>
-                            <span class="stat-label">Empresas (Tenants)</span>
+                            <span class="stat-label">Empresas Totales</span>
                         </div>
                         <div class="stat-box">
                             <span class="stat-number" id="stat-users">0</span>
@@ -211,7 +237,8 @@
                     </div>
                 </div>
             </div>
-        </div>
+
+        </main>
     </div>
 
     <script src="app.js"></script>
