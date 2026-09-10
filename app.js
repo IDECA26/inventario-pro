@@ -34,7 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
         adminBtn.addEventListener('click', () => {
             document.getElementById('admin-modal').classList.remove('hidden');
             cargarEmpresasEnSelect();
-            cargarRolesEnSelect(); // Cargamos dinámicamente los roles al abrir el modal
+            cargarRolesEnSelect(); // Cargamos dinámicamente los roles al abrir el modal[cite: 1]
+            loadGlobalStatsAndAudit(); // Cargamos estadísticas y auditoría global
         });
     }
 
@@ -243,7 +244,7 @@ async function cargarRolesEnSelect() {
     }
 }
 
-// 4. Registrar usuario vinculándolo al tenant y al rol seleccionado
+// 4. Registrar usuario vinculándolo al tenant y al rol seleccionado[cite: 1]
 async function handleCreateUser(e) {
     e.preventDefault();
     const companySelect = document.getElementById('company-select');
@@ -265,7 +266,7 @@ async function handleCreateUser(e) {
     }
 
     try {
-        // 1. Creamos el usuario en Supabase Auth
+        // 1. Creamos el usuario en Supabase Auth[cite: 1]
         const { data: authData, error: authError } = await supabaseClient.auth.signUp({
             email: email,
             password: password
@@ -276,7 +277,7 @@ async function handleCreateUser(e) {
         const userId = authData.user ? authData.user.id : null;
         if (!userId) throw new Error('No se pudo obtener el ID del usuario autenticado.');
 
-        // 2. Insertamos en la tabla 'users' con los datos requeridos
+        // 2. Insertamos en la tabla 'users' con los datos requeridos[cite: 1]
         const { error: profileError } = await supabaseClient
             .from('users')
             .insert([{
@@ -296,6 +297,67 @@ async function handleCreateUser(e) {
     } catch (error) {
         console.error("Detalle del error:", error);
         alert('Error al registrar usuario: ' + error.message);
+    }
+}
+
+// 5. Cargar estadísticas globales y registros de auditoría
+async function loadGlobalStatsAndAudit() {
+    try {
+        // Conteo de empresas (tenants)
+        const { count: tenantCount, error: tenantError } = await supabaseClient
+            .from('tenants')
+            .select('*', { count: 'exact', head: true });
+        
+        if (!tenantError) {
+            document.getElementById('stat-tenants').textContent = tenantCount ?? 0;
+        }
+
+        // Conteo de usuarios
+        const { count: userCount, error: userError } = await supabaseClient
+            .from('users')
+            .select('*', { count: 'exact', head: true });
+        
+        if (!userError) {
+            document.getElementById('stat-users').textContent = userCount ?? 0;
+        }
+
+        // Conteo de productos globales
+        const { count: prodCount, error: prodError } = await supabaseClient
+            .from('products')
+            .select('*', { count: 'exact', head: true });
+        
+        if (!prodError) {
+            document.getElementById('stat-products').textContent = prodCount ?? 0;
+        }
+
+        // Cargar últimos registros de auditoría
+        const { data: auditData, error: auditError } = await supabaseClient
+            .from('audit_logs')
+            .select('created_at, action, entity_type')
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        const auditTableBody = document.getElementById('audit-log-body');
+        if (!auditTableBody) return;
+
+        if (auditError || !auditData || auditData.length === 0) {
+            auditTableBody.innerHTML = `<tr><td colspan="3" class="text-center">No hay registros de auditoría recientes.</td></tr>`;
+            return;
+        }
+
+        auditTableBody.innerHTML = auditData.map(log => {
+            const fechaFormateada = log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A';
+            return `
+                <tr>
+                    <td>${fechaFormateada}</td>
+                    <td><span class="badge">${log.action || 'ACCION'}</span></td>
+                    <td>${log.entity_type || 'General'}</td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('Error al cargar estadísticas y auditoría:', error);
     }
 }
 
