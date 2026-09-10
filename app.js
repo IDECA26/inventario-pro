@@ -16,6 +16,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
+    // Sistema de Pestañas
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+            
+            // Ocultar todas las pestañas y quitar clase active
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+            tabBtns.forEach(b => b.classList.remove('active'));
+
+            // Mostrar la pestaña seleccionada
+            document.getElementById(targetId).classList.remove('hidden');
+            btn.classList.add('active');
+
+            // Acciones específicas al abrir pestañas
+            if (targetId === 'tab-tenant-stats') {
+                loadTenantStats();
+            } else if (targetId === 'tab-admin-users') {
+                cargarEmpresasEnSelect();
+                cargarRolesEnSelect();
+            } else if (targetId === 'tab-global-audit') {
+                loadGlobalStatsAndAudit();
+            }
+        });
+    });
+
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -25,25 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 (prod.code && prod.code.toLowerCase().includes(term))
             );
             renderProducts(filtered);
-        });
-    }
-
-    // Botón para abrir el panel de administración
-    const adminBtn = document.getElementById('admin-panel-btn');
-    if (adminBtn) {
-        adminBtn.addEventListener('click', () => {
-            document.getElementById('admin-modal').classList.remove('hidden');
-            cargarEmpresasEnSelect();
-            cargarRolesEnSelect(); 
-            loadGlobalStatsAndAudit(); 
-        });
-    }
-
-    // Botón para cerrar el modal de administración
-    const closeModalBtn = document.getElementById('close-modal-btn');
-    if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', () => {
-            document.getElementById('admin-modal').classList.add('hidden');
         });
     }
 
@@ -121,7 +128,7 @@ async function showDashboard() {
     document.getElementById('dashboard-screen').classList.remove('hidden');
     
     const nameDisplay = document.getElementById('user-display-name');
-    const adminBtn = document.getElementById('admin-panel-btn');
+    const superadminTabs = document.querySelectorAll('.superadmin-only');
 
     if (state.user) {
         const isSuperAdmin = state.user.email === 'altuna.g1@gmail.com';
@@ -129,14 +136,14 @@ async function showDashboard() {
             nameDisplay.textContent = state.user.email + (isSuperAdmin ? ' (SuperAdmin Global)' : '');
         }
         
-        // Mostrar botón de administración solo si es el superadmin
-        if (adminBtn) {
+        // Mostrar pestañas exclusivas solo si es el superadmin
+        superadminTabs.forEach(tab => {
             if (isSuperAdmin) {
-                adminBtn.classList.remove('hidden');
+                tab.classList.remove('hidden');
             } else {
-                adminBtn.classList.add('hidden');
+                tab.classList.add('hidden');
             }
-        }
+        });
     }
 
     await loadProducts();
@@ -150,7 +157,6 @@ async function loadProducts() {
     try {
         let query = supabaseClient.from('products').select('*');
 
-        // Si NO es el superadmin, buscamos su tenant_id mediante su correo en la tabla users
         if (state.user && state.user.email !== 'altuna.g1@gmail.com') {
             const { data: userData, error: userError } = await supabaseClient
                 .from('users')
@@ -174,6 +180,28 @@ async function loadProducts() {
         console.error('Error al cargar productos:', error.message);
     } finally {
         if (loadingIndicator) loadingIndicator.classList.add('hidden');
+    }
+}
+
+// --- ESTADÍSTICAS MINUCIOSAS DE LA EMPRESA ACTUAL ---
+async function loadTenantStats() {
+    try {
+        let prodCount = state.products.length;
+        let totalStock = 0;
+        let totalValue = 0;
+
+        state.products.forEach(prod => {
+            const stock = parseFloat(prod.stock) || 0;
+            const price = parseFloat(prod.sale_price) || 0;
+            totalStock += stock;
+            totalValue += (stock * price);
+        });
+
+        document.getElementById('tenant-prod-count').textContent = prodCount;
+        document.getElementById('tenant-total-stock').textContent = totalStock;
+        document.getElementById('tenant-inventory-value').textContent = `$${totalValue.toFixed(2)}`;
+    } catch (error) {
+        console.error('Error al calcular estadísticas de la empresa:', error);
     }
 }
 
@@ -298,7 +326,6 @@ async function handleCreateUser(e) {
 
         alert(`¡Usuario ${email} registrado y vinculado a la empresa con éxito!`);
         document.getElementById('create-user-form').reset();
-        document.getElementById('admin-modal').classList.add('hidden');
     } catch (error) {
         console.error("Detalle del error:", error);
         alert('Error al registrar usuario: ' + error.message);
