@@ -150,11 +150,12 @@ async function loadProducts() {
     try {
         let query = supabaseClient.from('products').select('*');
 
+        // Si NO es el superadmin, buscamos su tenant_id mediante su correo en la tabla users
         if (state.user && state.user.email !== 'altuna.g1@gmail.com') {
             const { data: userData, error: userError } = await supabaseClient
                 .from('users')
                 .select('tenant_id')
-                .eq('id', state.user.id)
+                .eq('username', state.user.email)
                 .maybeSingle();
 
             if (userError || !userData || !userData.tenant_id) {
@@ -420,7 +421,7 @@ async function handleIngressMercancia(e) {
             const { data: userData, error: userLookupError } = await supabaseClient
                 .from('users')
                 .select('tenant_id')
-                .eq('id', state.user.id)
+                .eq('username', state.user.email)
                 .maybeSingle();
 
             if (userLookupError || !userData || !userData.tenant_id) {
