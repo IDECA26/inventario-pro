@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         adminBtn.addEventListener('click', () => {
             document.getElementById('admin-modal').classList.remove('hidden');
             cargarEmpresasEnSelect();
+            cargarRolesEnSelect(); // Cargamos dinámicamente los roles al abrir el modal
         });
     }
 
@@ -215,11 +216,41 @@ async function cargarEmpresasEnSelect() {
     }
 }
 
-// 3. Registrar usuario consultando dinámicamente un rol válido de la base de datos
+// 3. Cargar roles desde la tabla 'roles' para el select correspondiente
+async function cargarRolesEnSelect() {
+    const select = document.getElementById('user-role-select');
+    if (!select) return;
+
+    try {
+        select.innerHTML = `<option value="">Cargando roles...</option>`;
+        
+        const { data, error } = await supabaseClient
+            .from('roles')
+            .select('id, name');
+            
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            select.innerHTML = `<option value="">No hay roles disponibles</option>`;
+            return;
+        }
+
+        select.innerHTML = `<option value="">Seleccione un rol...</option>` + 
+            data.map(rol => `<option value="${rol.id}">${rol.name.toUpperCase()}</option>`).join('');
+    } catch (error) {
+        console.error('Error al cargar roles:', error.message);
+        select.innerHTML = `<option value="">Error al cargar roles</option>`;
+    }
+}
+
+// 4. Registrar usuario vinculándolo al tenant y al rol seleccionado
 async function handleCreateUser(e) {
     e.preventDefault();
     const companySelect = document.getElementById('company-select');
+    const roleSelect = document.getElementById('user-role-select');
+
     const companyId = companySelect.value;
+    const selectedRoleId = roleSelect ? roleSelect.value : null;
     const email = document.getElementById('new-user-email').value.trim();
     const password = document.getElementById('new-user-password').value.trim();
 
@@ -228,21 +259,13 @@ async function handleCreateUser(e) {
         return;
     }
 
+    if (!selectedRoleId) {
+        alert('Por favor selecciona un rol para el usuario.');
+        return;
+    }
+
     try {
-        // 1. Buscamos un rol válido existente en la tabla 'roles' para evitar el error de llave foránea
-        const { data: roleData, error: roleError } = await supabaseClient
-            .from('roles')
-            .select('id')
-            .limit(1)
-            .single();
-
-        if (roleError || !roleData) {
-            throw new Error('No se encontró ningún rol configurado en la tabla "roles".');
-        }
-
-        const validRoleId = roleData.id; // ID real obtenido de la BD
-
-        // 2. Creamos el usuario en Supabase Auth
+        // 1. Creamos el usuario en Supabase Auth
         const { data: authData, error: authError } = await supabaseClient.auth.signUp({
             email: email,
             password: password
@@ -253,13 +276,13 @@ async function handleCreateUser(e) {
         const userId = authData.user ? authData.user.id : null;
         if (!userId) throw new Error('No se pudo obtener el ID del usuario autenticado.');
 
-        // 3. Insertamos en la tabla 'users' usando el rol válido y el tenant_id correcto
+        // 2. Insertamos en la tabla 'users' con los datos requeridos
         const { error: profileError } = await supabaseClient
             .from('users')
             .insert([{
                 id: userId,
                 tenant_id: companyId,
-                role_id: validRoleId, // <-- Usamos el ID real de la tabla roles
+                role_id: selectedRoleId,
                 username: email,
                 password: password,
                 full_name: email.split('@')[0]
@@ -274,6 +297,41 @@ async function handleCreateUser(e) {
         console.error("Detalle del error:", error);
         alert('Error al registrar usuario: ' + error.message);
     }
+}
+
+// --- RENDERIZAR PRODUCTOS Y UTILIDADES ---
+function renderProducts(productsToRender) {
+    const container = document.getElementById('product-list');
+    if (!container) return;
+
+    if (!productsToRender || productsToRender.length === 0) {
+        container.innerHTML = `<p class="no-products">No se encontraron empresas/productos para mostrar.</p>`;
+        return;
+    }
+
+    container.innerHTML = productsToRender.map(prod => `
+        <div class="product-card">
+            <h3>${prod.name || 'Sin nombre'}</h3>
+            <p><strong>Código:</strong> ${prod.code || prod.manual_code || prod.barcode || 'N/A'}</p>
+            <p><strong>Stock:</strong> ${prod.stock ?? 0}</p>
+            <p><strong>Precio:</strong> $${prod.sale_price ?? 0.00}</p>
+        </div>
+    `).join('');
+}
+
+function setLoadingLogin(isLoading, text) {
+    const btn = document.getElementById('login-btn');
+    if (!btn) return;
+    btn.disabled = isLoading;
+    btn.textContent = text;
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.getElementById('login-alert');
+    if (!alertDiv) return;
+    alertDiv.textContent = message;
+    alertDiv.className = `alert ${type}`;
+    alertDiv.classList.remove('hidden');
 }
 
 function hideAlert() {
