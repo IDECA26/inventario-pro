@@ -81,13 +81,12 @@
                             <select id="company-select" required>
                                 <option value="">Cargando empresas...</option>
                             </select>
-                            <!-- Selector de Rol del Usuario -->
-<div class="form-group">
-    <label>Rol del Usuario</label>
-    <select id="user-role-select" required>
-        <option value="">Cargando roles...</option>
-    </select>
-</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Rol del Usuario</label>
+                            <select id="user-role-select" required[cite: 2]>
+                                <option value="">Cargando roles...</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Correo del Usuario</label>
@@ -99,6 +98,45 @@
                         </div>
                         <button type="submit" class="btn-primary">Crear y Asignar Usuario</button>
                     </form>
+                </div>
+
+                <!-- Sección 3: Estadísticas y Auditoría Global -->
+                <div class="admin-card">
+                    <h4>Estadísticas del Sistema</h4>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <span class="stat-number" id="stat-tenants">0</span>
+                            <span class="stat-label">Empresas (Tenants)</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="stat-users">0</span>
+                            <span class="stat-label">Usuarios Totales</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="stat-products">0</span>
+                            <span class="stat-label">Productos Globales</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <h4>Auditoría Global de Actividad</h4>
+                    <div class="table-container">
+                        <table class="audit-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Acción</th>
+                                    <th>Entidad</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-log-body">
+                                <tr>
+                                    <td colspan="3" class="text-center">Cargando registros de auditoría...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
