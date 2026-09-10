@@ -34,8 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
         adminBtn.addEventListener('click', () => {
             document.getElementById('admin-modal').classList.remove('hidden');
             cargarEmpresasEnSelect();
-            cargarRolesEnSelect(); // Cargamos dinámicamente los roles al abrir el modal[cite: 1]
-            loadGlobalStatsAndAudit(); // Cargamos estadísticas y auditoría global
+            cargarRolesEnSelect(); 
+            loadGlobalStatsAndAudit(); 
         });
     }
 
@@ -53,6 +53,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const createUserForm = document.getElementById('create-user-form');
     if (createUserForm) createUserForm.addEventListener('submit', handleCreateUser);
+
+    // Módulo de Ingreso Pro
+    const searchMasterBtn = document.getElementById('search-master-btn');
+    if (searchMasterBtn) {
+        searchMasterBtn.addEventListener('click', handleSearchMasterProduct);
+    }
+
+    const ingressForm = document.getElementById('ingress-form');
+    if (ingressForm) {
+        ingressForm.addEventListener('submit', handleIngressMercancia);
+    }
 
     // Comprobar sesión activa nativa
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
@@ -147,7 +158,7 @@ async function loadProducts() {
                 .maybeSingle();
 
             if (userError || !userData || !userData.tenant_id) {
-                throw new Error('El usuario no está asociado a ninguna empresa.');
+                throw new Error('El usuario actual no está asociado a ninguna empresa en la tabla public.users.');
             }
 
             query = query.eq('tenant_id', userData.tenant_id);
@@ -160,7 +171,6 @@ async function loadProducts() {
         renderProducts(state.products);
     } catch (error) {
         console.error('Error al cargar productos:', error.message);
-        showAlert('Error al cargar la lista de productos', 'error');
     } finally {
         if (loadingIndicator) loadingIndicator.classList.add('hidden');
     }
@@ -168,7 +178,6 @@ async function loadProducts() {
 
 // --- FUNCIONES DE ADMINISTRACIÓN ---
 
-// 1. Crear una nueva empresa en la tabla 'tenants'
 async function handleCreateCompany(e) {
     e.preventDefault();
     const nameInput = document.getElementById('company-name');
@@ -190,7 +199,6 @@ async function handleCreateCompany(e) {
     }
 }
 
-// 2. Cargar empresas desde la tabla 'tenants' para el select
 async function cargarEmpresasEnSelect() {
     const select = document.getElementById('company-select');
     if (!select) return;
@@ -217,7 +225,6 @@ async function cargarEmpresasEnSelect() {
     }
 }
 
-// 3. Cargar roles desde la tabla 'roles' para el select correspondiente
 async function cargarRolesEnSelect() {
     const select = document.getElementById('user-role-select');
     if (!select) return;
@@ -244,7 +251,6 @@ async function cargarRolesEnSelect() {
     }
 }
 
-// 4. Registrar usuario vinculándolo al tenant y al rol seleccionado[cite: 1]
 async function handleCreateUser(e) {
     e.preventDefault();
     const companySelect = document.getElementById('company-select');
@@ -266,7 +272,6 @@ async function handleCreateUser(e) {
     }
 
     try {
-        // 1. Creamos el usuario en Supabase Auth[cite: 1]
         const { data: authData, error: authError } = await supabaseClient.auth.signUp({
             email: email,
             password: password
@@ -277,7 +282,6 @@ async function handleCreateUser(e) {
         const userId = authData.user ? authData.user.id : null;
         if (!userId) throw new Error('No se pudo obtener el ID del usuario autenticado.');
 
-        // 2. Insertamos en la tabla 'users' con los datos requeridos[cite: 1]
         const { error: profileError } = await supabaseClient
             .from('users')
             .insert([{
@@ -300,10 +304,8 @@ async function handleCreateUser(e) {
     }
 }
 
-// 5. Cargar estadísticas globales y registros de auditoría
 async function loadGlobalStatsAndAudit() {
     try {
-        // Conteo de empresas (tenants)
         const { count: tenantCount, error: tenantError } = await supabaseClient
             .from('tenants')
             .select('*', { count: 'exact', head: true });
@@ -312,7 +314,6 @@ async function loadGlobalStatsAndAudit() {
             document.getElementById('stat-tenants').textContent = tenantCount ?? 0;
         }
 
-        // Conteo de usuarios
         const { count: userCount, error: userError } = await supabaseClient
             .from('users')
             .select('*', { count: 'exact', head: true });
@@ -321,7 +322,6 @@ async function loadGlobalStatsAndAudit() {
             document.getElementById('stat-users').textContent = userCount ?? 0;
         }
 
-        // Conteo de productos globales
         const { count: prodCount, error: prodError } = await supabaseClient
             .from('products')
             .select('*', { count: 'exact', head: true });
@@ -330,7 +330,6 @@ async function loadGlobalStatsAndAudit() {
             document.getElementById('stat-products').textContent = prodCount ?? 0;
         }
 
-        // Cargar últimos registros de auditoría
         const { data: auditData, error: auditError } = await supabaseClient
             .from('audit_logs')
             .select('created_at, action, entity_type')
@@ -358,6 +357,134 @@ async function loadGlobalStatsAndAudit() {
 
     } catch (error) {
         console.error('Error al cargar estadísticas y auditoría:', error);
+    }
+}
+
+// --- MÓDULO DE INGRESO PRO ---
+
+async function handleSearchMasterProduct() {
+    const codeInput = document.getElementById('ingress-code');
+    const code = codeInput.value.trim();
+
+    if (!code) {
+        alert('Por favor introduce un código para buscar.');
+        return;
+    }
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('products')
+            .select('*')
+            .or(`code.eq.${code},barcode.eq.${code}`)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+            document.getElementById('ingress-name').value = data.name || '';
+            document.getElementById('ingress-price').value = data.sale_price || 0;
+            document.getElementById('factor-box').value = data.box_factor || 1;
+            document.getElementById('factor-pack').value = data.pack_factor || 1;
+            document.getElementById('factor-bale').value = data.bale_factor || 1;
+            alert('¡Producto encontrado en el Catálogo Maestro!');
+        } else {
+            alert('El producto no existe en el índice global. Puedes registrarlo llenando los datos y se creará automáticamente.');
+        }
+    } catch (error) {
+        console.error('Error al buscar producto maestro:', error);
+    }
+}
+
+async function handleIngressMercancia(e) {
+    e.preventDefault();
+
+    const code = document.getElementById('ingress-code').value.trim();
+    const name = document.getElementById('ingress-name').value.trim();
+    const price = parseFloat(document.getElementById('ingress-price').value) || 0;
+    
+    const boxFactor = parseFloat(document.getElementById('factor-box').value) || 1;
+    const packFactor = parseFloat(document.getElementById('factor-pack').value) || 1;
+    const baleFactor = parseFloat(document.getElementById('factor-bale').value) || 1;
+
+    const packagingUnit = document.getElementById('packaging-unit').value;
+    const qtyEntered = parseFloat(document.getElementById('ingress-quantity').value) || 0;
+
+    let totalUnitsToAdd = qtyEntered;
+    if (packagingUnit === 'caja') totalUnitsToAdd = qtyEntered * boxFactor;
+    else if (packagingUnit === 'paquete') totalUnitsToAdd = qtyEntered * packFactor;
+    else if (packagingUnit === 'bulto') totalUnitsToAdd = qtyEntered * baleFactor;
+
+    try {
+        let tenantId = null;
+        if (state.user.email !== 'altuna.g1@gmail.com') {
+            const { data: userData, error: userLookupError } = await supabaseClient
+                .from('users')
+                .select('tenant_id')
+                .eq('id', state.user.id)
+                .maybeSingle();
+
+            if (userLookupError || !userData || !userData.tenant_id) {
+                throw new Error('Tu usuario no tiene un tenant_id asociado en la base de datos.');
+            }
+            tenantId = userData.tenant_id;
+        } else {
+            const { data: tenants } = await supabaseClient.from('tenants').select('id').limit(1).maybeSingle();
+            if (tenants) tenantId = tenants.id;
+        }
+
+        if (!tenantId) throw new Error('No se pudo determinar la empresa (tenant) para registrar el stock.');
+
+        let { data: existingProd } = await supabaseClient
+            .from('products')
+            .select('*')
+            .or(`code.eq.${code},barcode.eq.${code}`)
+            .maybeSingle();
+
+        let productId;
+
+        if (existingProd) {
+            productId = existingProd.id;
+            await supabaseClient.from('products').update({
+                box_factor: boxFactor,
+                pack_factor: packFactor,
+                bale_factor: baleFactor,
+                sale_price: price
+            }).eq('id', productId);
+        } else {
+            productId = crypto.randomUUID();
+            const { error: insertProdError } = await supabaseClient
+                .from('products')
+                .insert([{
+                    id: productId,
+                    tenant_id: tenantId,
+                    code: code,
+                    barcode: code,
+                    name: name,
+                    sale_price: price,
+                    box_factor: boxFactor,
+                    pack_factor: packFactor,
+                    bale_factor: baleFactor,
+                    stock: 0 
+                }]);
+            if (insertProdError) throw insertProdError;
+        }
+
+        const currentStock = existingProd && existingProd.stock ? parseFloat(existingProd.stock) : 0;
+        const newStock = currentStock + totalUnitsToAdd;
+
+        const { error: updateStockError } = await supabaseClient
+            .from('products')
+            .update({ stock: newStock })
+            .eq('id', productId);
+
+        if (updateStockError) throw updateStockError;
+
+        alert(`¡Ingreso exitoso! Se sumaron ${totalUnitsToAdd} unidades al inventario (Equivalente a ${qtyEntered} ${packagingUnit}(s)).`);
+        document.getElementById('ingress-form').reset();
+        loadProducts(); 
+    } catch (error) {
+        console.error('Error en el ingreso de mercancía:', error);
+        alert('Error al procesar el ingreso: ' + error.message);
     }
 }
 
@@ -400,151 +527,4 @@ function hideAlert() {
     const alertDiv = document.getElementById('login-alert');
     if (!alertDiv) return;
     alertDiv.classList.add('hidden');
-}
-
-// --- MÓDULO DE INGRESO PRO ---
-
-document.addEventListener('DOMContentLoaded', () => {
-    const searchMasterBtn = document.getElementById('search-master-btn');
-    if (searchMasterBtn) {
-        searchMasterBtn.addEventListener('click', handleSearchMasterProduct);
-    }
-
-    const ingressForm = document.getElementById('ingress-form');
-    if (ingressForm) {
-        ingressForm.addEventListener('submit', handleIngressMercancia);
-    }
-});
-
-// 1. Buscar en el Catálogo Maestro Global al introducir el código
-async function handleSearchMasterProduct() {
-    const codeInput = document.getElementById('ingress-code');
-    const code = codeInput.value.trim();
-
-    if (!code) {
-        alert('Por favor introduce un código para buscar.');
-        return;
-    }
-
-    try {
-        const { data, error } = await supabaseClient
-            .from('products')
-            .select('*')
-            .or(`code.eq.${code},barcode.eq.${code}`)
-            .maybeSingle();
-
-        if (error) throw error;
-
-        if (data) {
-            // El producto ya existe en el índice maestro, autocompletamos
-            document.getElementById('ingress-name').value = data.name || '';
-            document.getElementById('ingress-price').value = data.sale_price || 0;
-            document.getElementById('factor-box').value = data.box_factor || 1;
-            document.getElementById('factor-pack').value = data.pack_factor || 1;
-            document.getElementById('factor-bale').value = data.bale_factor || 1;
-            alert('¡Producto encontrado en el Catálogo Maestro!');
-        } else {
-            alert('El producto no existe en el índice global. Puedes registrarlo llenando los datos y se creará automáticamente.');
-        }
-    } catch (error) {
-        console.error('Error al buscar producto maestro:', error);
-    }
-}
-
-// 2. Registrar el ingreso aplicando factores de conversión automáticos
-async function handleIngressMercancia(e) {
-    e.preventDefault();
-
-    const code = document.getElementById('ingress-code').value.trim();
-    const name = document.getElementById('ingress-name').value.trim();
-    const price = parseFloat(document.getElementById('ingress-price').value) || 0;
-    
-    const boxFactor = parseFloat(document.getElementById('factor-box').value) || 1;
-    const packFactor = parseFloat(document.getElementById('factor-pack').value) || 1;
-    const baleFactor = parseFloat(document.getElementById('factor-bale').value) || 1;
-
-    const packagingUnit = document.getElementById('packaging-unit').value;
-    const qtyEntered = parseFloat(document.getElementById('ingress-quantity').value) || 0;
-
-    // Calcular el total de unidades reales a sumar según el empaque seleccionado
-    let totalUnitsToAdd = qtyEntered;
-    if (packagingUnit === 'caja') totalUnitsToAdd = qtyEntered * boxFactor;
-    else if (packagingUnit === 'paquete') totalUnitsToAdd = qtyEntered * packFactor;
-    else if (packagingUnit === 'bulto') totalUnitsToAdd = qtyEntered * baleFactor;
-
-    try {
-        // Obtener el tenant_id del usuario actual si no es superadmin
-        let tenantId = null;
-        if (state.user.email !== 'altuna.g1@gmail.com') {
-            const { data: userData } = await supabaseClient
-                .from('users')
-                .select('tenant_id')
-                .eq('id', state.user.id)
-                .single();
-            if (userData) tenantId = userData.tenant_id;
-        } else {
-            // Si es superadmin operando, requerimos un tenant o se asigna al primero por defecto
-            const { data: tenants } = await supabaseClient.from('tenants').select('id').limit(1).single();
-            if (tenants) tenantId = tenants.id;
-        }
-
-        if (!tenantId) throw new Error('No se pudo determinar la empresa (tenant) para registrar el stock.');
-
-        // 1. Verificar si el producto ya existe globalmente
-        let { data: existingProd } = await supabaseClient
-            .from('products')
-            .select('*')
-            .or(`code.eq.${code},barcode.eq.${code}`)
-            .maybeSingle();
-
-        let productId;
-
-        if (existingProd) {
-            productId = existingProd.id;
-            // Actualizar factores por si cambiaron
-            await supabaseClient.from('products').update({
-                box_factor: boxFactor,
-                pack_factor: packFactor,
-                bale_factor: baleFactor,
-                sale_price: price
-            }).eq('id', productId);
-        } else {
-            // Crear el producto en el Catálogo Maestro Global
-            productId = crypto.randomUUID();
-            const { error: insertProdError } = await supabaseClient
-                .from('products')
-                .insert([{
-                    id: productId,
-                    tenant_id: tenantId, // Vinculación inicial
-                    code: code,
-                    barcode: code,
-                    name: name,
-                    sale_price: price,
-                    box_factor: boxFactor,
-                    pack_factor: packFactor,
-                    bale_factor: baleFactor,
-                    stock: 0 // Se gestionará por empresa
-                }]);
-            if (insertProdError) throw insertProdError;
-        }
-
-        // 2. Actualizar el stock sumando las unidades convertidas para este tenant
-        // Buscamos el stock actual del producto para esta empresa
-        const currentStock = existingProd && existingProd.stock ? parseFloat(existingProd.stock) : 0;
-        const newStock = currentStock + totalUnitsToAdd;
-
-        const { error: updateStockError } = await supabaseClient
-            .from('products')
-            .update({ stock: newStock })
-            .eq('id', productId);
-
-        if (updateStockError) throw updateStockError;
-
-        alert(`¡Ingreso exitoso! Se sumaron ${totalUnitsToAdd} unidades al inventario (Equivalente a ${qtyEntered} ${packagingUnit}(s)).`);
-        document.getElementById('ingress-form').reset();
-        loadProducts(); // Recargar la lista visual de inventario
-    } catch (error) {
-        console.error('Error en el ingreso de mercancía:', error);
-        alert('Error al procesar el ingreso: ' + error.message);
-    }
 }
