@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventario Pro - Multi-Tenant</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <!-- Librería Html5-Qrcode para escáner por cámara -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 
@@ -55,7 +58,7 @@
             <div id="tab-inventory" class="tab-content">
                 <div class="search-bar-container">
                     <input type="text" id="search-input" placeholder="Buscar por nombre o código..." autocomplete="off">
-                    <button id="scan-btn" class="btn-icon">📷 QR</button>
+                    <button id="scan-search-btn" class="btn-icon">📷 Escanear</button>
                 </div>
                 <div id="loading-indicator" class="loading hidden">Cargando productos...</div>
                 <div id="product-list" class="product-grid"></div>
@@ -70,6 +73,7 @@
                             <label>Código de Barras o Código Manual</label>
                             <div style="display: flex; gap: 10px;">
                                 <input type="text" id="ingress-code" required placeholder="Escanee o escriba el código..." autocomplete="off">
+                                <button type="button" id="scan-ingress-btn" class="btn-secondary">📷 Cámara</button>
                                 <button type="button" id="search-master-btn" class="btn-secondary">Buscar</button>
                             </div>
                         </div>
@@ -239,6 +243,20 @@
             </div>
 
         </main>
+    </div>
+
+    <!-- MODAL DE ESCANER DE CÁMARA -->
+    <div id="scanner-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 450px; text-align: center;">
+            <div class="modal-header">
+                <h3>Escanear Código de Barras / QR</h3>
+                <button id="close-scanner-btn" class="close-btn">&times;</button>
+            </div>
+            <div style="padding: 1rem 0;">
+                <div id="reader" style="width: 100%;"></div>
+            </div>
+            <p style="font-size: 0.85rem; color: #64748b; margin-top: 10px;">Apunta la cámara hacia el código de barras o código QR del producto.</p>
+        </div>
     </div>
 
     <script src="app.js"></script>
