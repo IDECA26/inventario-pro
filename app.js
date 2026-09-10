@@ -215,7 +215,7 @@ async function cargarEmpresasEnSelect() {
     }
 }
 
-// 3. Registrar usuario usando el tenant_id real de la tabla 'tenants'
+// 3. Registrar usuario correctamente usando Supabase Auth y vinculando su tenant_id
 async function handleCreateUser(e) {
     e.preventDefault();
     const companySelect = document.getElementById('company-select');
@@ -229,16 +229,28 @@ async function handleCreateUser(e) {
     }
 
     try {
-        const userId = crypto.randomUUID();
+        // 1. Creamos el usuario en el sistema de autenticación nativo de Supabase
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password
+        });
 
+        if (authError) throw authError;
+
+        const userId = authData.user ? authData.user.id : null;
+
+        if (!userId) {
+            throw new Error('No se pudo obtener el ID del usuario autenticado.');
+        }
+
+        // 2. Insertamos el perfil en la tabla 'users' usando el ID real de Supabase Auth
         const { error: profileError } = await supabaseClient
             .from('users')
             .insert([{
-                id: userId,
-                tenant_id: companyId,
+                id: userId, // ID oficial de Supabase Auth
+                tenant_id: companyId, // ID de la empresa seleccionada de la tabla tenants
                 role_id: 'standard_user',
                 username: email,
-                password: password,
                 full_name: email.split('@')[0]
             }]);
 
@@ -249,7 +261,7 @@ async function handleCreateUser(e) {
         document.getElementById('admin-modal').classList.add('hidden');
     } catch (error) {
         console.error("Detalle del error:", error);
-        alert('Error al registrar usuario en la base de datos: ' + error.message);
+        alert('Error al registrar usuario: ' + error.message);
     }
 }
 
