@@ -377,3 +377,82 @@ body {
 .close-btn:hover {
     color: #1e293b;
 }
+
+/* --- ADAPTACIÓN RESPONSIVA PROFESIONAL PARA DISPOSITIVOS MÓVILES --- */
+
+@media screen and (max-width: 768px) {
+    /* Ajustes generales de contenedores en móvil */
+    body {
+        font-size: 14px;
+    }
+
+    .top-bar {
+        padding: 0.75rem 1rem;
+    }
+
+    .nav-tabs {
+        padding: 0 0.5rem;
+        gap: 0.25rem;
+    }
+
+    .tab-btn {
+        padding: 0.75rem 0.85rem;
+        font-size: 0.8rem;
+    }
+
+    .tab-content {
+        padding: 1rem;
+    }
+
+    .admin-card {
+        padding: 1rem;
+    }
+
+    /* Paneles de filtros analíticos y de alta gerencia en columna única */
+    #tab-advanced-stats div[style*="display: grid"] {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    /* Tarjetas de estadísticas de resumen en móvil */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px;
+    }
+
+    /* Formularios de Ingresos y Egresos adaptados */
+    form div[style*="display: grid"] {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    /* Contenedores de búsqueda flexible */
+    .search-bar-container {
+        flex-direction: column;
+    }
+
+    .search-bar-container input[type="text"] {
+        width: 100%;
+    }
+
+    .btn-icon {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Tablas responsivas con desplazamiento horizontal fluido */
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .audit-table {
+        min-width: 600px; /* Fuerza el scroll horizontal en lugar de aplastar el texto */
+    }
+
+    /* Selector múltiple de analítica adaptado a la pantalla táctil */
+    #stats-multi-products {
+        height: 120px !important;
+    }
+}
