@@ -22,15 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', () => {
             const targetId = btn.getAttribute('data-target');
             
-            // Ocultar todas las pestañas y quitar clase active
             document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
             tabBtns.forEach(b => b.classList.remove('active'));
 
-            // Mostrar la pestaña seleccionada
             document.getElementById(targetId).classList.remove('hidden');
             btn.classList.add('active');
 
-            // Acciones específicas al abrir pestañas
             if (targetId === 'tab-tenant-stats') {
                 loadTenantStats();
             } else if (targetId === 'tab-admin-users') {
@@ -52,6 +49,21 @@ document.addEventListener('DOMContentLoaded', () => {
             );
             renderProducts(filtered);
         });
+    }
+
+    // Vinculación de botones de cámara nativa (sin guardar fotos en memoria)
+    const scanSearchBtn = document.getElementById('scan-search-btn');
+    const cameraInputSearch = document.getElementById('camera-input-search');
+    if (scanSearchBtn && cameraInputSearch) {
+        scanSearchBtn.addEventListener('click', () => cameraInputSearch.click());
+        cameraInputSearch.addEventListener('change', (e) => handleCameraScan(e, 'search'));
+    }
+
+    const scanIngressBtn = document.getElementById('scan-ingress-btn');
+    const cameraInputIngress = document.getElementById('camera-input-ingress');
+    if (scanIngressBtn && cameraInputIngress) {
+        scanIngressBtn.addEventListener('click', () => cameraInputIngress.click());
+        cameraInputIngress.addEventListener('change', (e) => handleCameraScan(e, 'ingress'));
     }
 
     // Formularios del panel de administración
@@ -80,6 +92,61 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// --- LECTOR NATIVO DE CÁMARA (Procesa en RAM sin guardar archivos) ---
+function handleCameraScan(event, targetType) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, img.width, img.height);
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            
+            // Intentar decodificar QR o código compatible
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+            if (code) {
+                processScannedCode(code.data, targetType);
+            } else {
+                alert('No se pudo detectar un código legible en la imagen. Intente de nuevo enfocando bien el código de barras o QR.');
+            }
+            // Limpiar input de archivo para permitir reescanear el mismo código si se desea
+            event.target.value = '';
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+async function processScannedCode(decodedText, targetType) {
+    if (targetType === 'search') {
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.value = decodedText;
+            const term = decodedText.toLowerCase().trim();
+            const filtered = state.products.filter(prod => 
+                (prod.name && prod.name.toLowerCase().includes(term)) || 
+                (prod.code && prod.code.toLowerCase().includes(term)) ||
+                (prod.barcode && prod.barcode.toLowerCase().includes(term))
+            );
+            renderProducts(filtered);
+        }
+    } else if (targetType === 'ingress') {
+        const codeInput = document.getElementById('ingress-code');
+        if (codeInput) {
+            codeInput.value = decodedText;
+            await handleSearchMasterProduct();
+        }
+    }
+}
 
 // --- LOGIN NATIVO DE SUPABASE ---
 async function handleLogin(e) {
@@ -136,7 +203,6 @@ async function showDashboard() {
             nameDisplay.textContent = state.user.email + (isSuperAdmin ? ' (SuperAdmin Global)' : '');
         }
         
-        // Mostrar pestañas exclusivas solo si es el superadmin
         superadminTabs.forEach(tab => {
             if (isSuperAdmin) {
                 tab.classList.remove('hidden');
