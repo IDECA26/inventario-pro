@@ -451,6 +451,7 @@ body {
         height: 120px !important;
     }
 }
+
 /* --- CORRECCIÓN DEFINITIVA DE POSICIÓN DEL MENÚ HAMBURGUESA MÓVIL --- */
 @media screen and (max-width: 768px) {
     /* Asegurar que el dashboard y el body no creen contenedores flotantes extraños */
