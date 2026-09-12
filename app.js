@@ -1,3 +1,5 @@
+// RUTA: inventario-pro/app.js
+
 // --- CONFIGURACIÓN DE SUPABASE ---
 const SUPABASE_URL = 'https://xqisaqjswazjawzeguuj.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxaXNhcWpzd2F6amF3emVndXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODE1MjQsImV4cCI6MjEwMTc1NzUyNH0.TGegMa4OXGN45MqHpKMbNQk0kGiKTGIdmwLQvCelvCA';
@@ -13,49 +15,58 @@ let html5QrCode = null;
 let activeScannerTarget = null; // 'search' o 'ingress'
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. DECLARACION DE VARIABLES EN AMBITO SUPERIOR
+    // Esto evita errores de referencia (ReferenceError) al acceder a ellas desde diferentes bloques
+    const menuToggleBtn = document.getElementById('menu-toggle-btn');
+    const navTabsContainer = document.getElementById('nav-tabs-container');
+    const tabBtns = document.querySelectorAll('.tab-btn');
+
     const loginForm = document.getElementById('login-form');
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
 
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
-    // --- CONTROL GLOBAL DEL MENÚ HAMBURGUESA MÓVIL ---
-document.addEventListener('click', (e) => {
-    const menuToggleBtn = document.getElementById('menu-toggle-btn');
-    const navTabsContainer = document.getElementById('nav-tabs-container');
+    // 2. CONTROL UNIFICADO DEL MENU HAMBURGUESA MOVIL
+    // Se consolida en un solo escuchador para evitar redundancias y conflictos de ambito
+    document.addEventListener('click', (e) => {
+        if (!menuToggleBtn || !navTabsContainer) return;
 
-    if (!menuToggleBtn || !navTabsContainer) return;
-
-    // Si se hace clic en el botón de las 3 rayitas
-    if (menuToggleBtn.contains(e.target)) {
-        e.stopPropagation();
-        navTabsContainer.classList.toggle('mobile-open');
-    } 
-    // Si se hace clic en cualquier pestaña dentro del menú en móvil, se cierra automáticamente
-    else if (e.target.classList.contains('tab-btn')) {
-        if (window.innerWidth <= 768) {
+        // Si se hace clic en el boton de hamburguesa, alternar la clase de visibilidad
+        if (menuToggleBtn.contains(e.target)) {
+            e.stopPropagation();
+            navTabsContainer.classList.toggle('mobile-open');
+        } 
+        // Si se hace clic en una pestana, cerrar el menu automaticamente en vista movil
+        else if (e.target.classList.contains('tab-btn')) {
+            if (window.innerWidth <= 768) {
+                navTabsContainer.classList.remove('mobile-open');
+            }
+        } 
+        // Si se hace clic fuera del menu y del boton, cerrar el menu
+        else if (!navTabsContainer.contains(e.target)) {
             navTabsContainer.classList.remove('mobile-open');
         }
-    } 
-    // Si se hace clic fuera del menú hamburguesa, se cierra
-    else if (!navTabsContainer.contains(e.target)) {
-        navTabsContainer.classList.remove('mobile-open');
-    }
-});
+    });
 
-    // Sistema de Pestañas
+    // 3. SISTEMA DE PESTANAS
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const targetId = btn.getAttribute('data-target');
             
+            // Ocultar todos los contenidos y desactivar todas las pestanas
             document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
             tabBtns.forEach(b => b.classList.remove('active'));
 
-            document.getElementById(targetId).classList.remove('hidden');
+            // Mostrar el contenido seleccionado y activar la pestana actual
+            const targetElement = document.getElementById(targetId);
+            if (targetElement) {
+                targetElement.classList.remove('hidden');
+            }
             btn.classList.add('active');
 
-            // Cerrar menú móvil al hacer clic en una opción
-            if (navTabsContainer) {
+            // Cerrar menu movil al hacer clic en una opcion
+            if (navTabsContainer && window.innerWidth <= 768) {
                 navTabsContainer.classList.remove('mobile-open');
             }
 
@@ -70,15 +81,7 @@ document.addEventListener('click', (e) => {
         });
     });
 
-    // Cerrar menú si se toca fuera
-    document.addEventListener('click', (e) => {
-        if (navTabsContainer && menuToggleBtn) {
-            if (!navTabsContainer.contains(e.target) && !menuToggleBtn.contains(e.target)) {
-                navTabsContainer.classList.remove('mobile-open');
-            }
-        }
-    });
-
+    // 4. LOGICA DE BUSQUEDA Y ESCANER EN INVENTARIO
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -91,7 +94,6 @@ document.addEventListener('click', (e) => {
         });
     }
 
-    // Comportamiento Híbrido para el botón de búsqueda / escáner en inventario
     const scanSearchBtn = document.getElementById('scan-search-btn');
     if (scanSearchBtn) {
         scanSearchBtn.addEventListener('click', () => {
@@ -109,7 +111,7 @@ document.addEventListener('click', (e) => {
         });
     }
 
-    // Comportamiento Híbrido para el botón de cámara en Ingreso Pro
+    // 5. LOGICA DE ESCANER EN INGRESO PRO
     const scanIngressBtn = document.getElementById('scan-ingress-btn');
     const ingressCodeInput = document.getElementById('ingress-code');
     if (scanIngressBtn && ingressCodeInput) {
@@ -128,14 +130,14 @@ document.addEventListener('click', (e) => {
         closeScannerBtn.addEventListener('click', closeScanner);
     }
 
-    // Formularios del panel de administración
+    // 6. FORMULARIOS DEL PANEL DE ADMINISTRACION
     const createCompanyForm = document.getElementById('create-company-form');
     if (createCompanyForm) createCompanyForm.addEventListener('submit', handleCreateCompany);
 
     const createUserForm = document.getElementById('create-user-form');
     if (createUserForm) createUserForm.addEventListener('submit', handleCreateUser);
 
-    // Módulo de Ingreso Pro
+    // 7. MODULO DE INGRESO PRO
     const searchMasterBtn = document.getElementById('search-master-btn');
     if (searchMasterBtn) {
         searchMasterBtn.addEventListener('click', handleSearchMasterProduct);
@@ -146,7 +148,7 @@ document.addEventListener('click', (e) => {
         ingressForm.addEventListener('submit', handleIngressMercancia);
     }
 
-    // Comprobar sesión activa nativa
+    // 8. COMPROBAR SESION ACTIVA NATIVA
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
         if (session) {
             state.user = session.user;
@@ -346,7 +348,6 @@ async function loadTenantStats() {
 }
 
 // --- FUNCIONES DE ADMINISTRACIÓN ---
-
 async function handleCreateCompany(e) {
     e.preventDefault();
     const nameInput = document.getElementById('company-name');
@@ -529,7 +530,6 @@ async function loadGlobalStatsAndAudit() {
 }
 
 // --- MÓDULO DE INGRESO PRO ---
-
 async function handleSearchMasterProduct() {
     const codeInput = document.getElementById('ingress-code');
     const code = codeInput.value.trim();
