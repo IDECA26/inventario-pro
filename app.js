@@ -42,6 +42,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Control del Menú Hamburguesa en Dispositivos Móviles
+    const menuToggleBtn = document.getElementById('menu-toggle-btn');
+    const navTabsContainer = document.getElementById('nav-tabs-container');
+
+    if (menuToggleBtn && navTabsContainer) {
+        menuToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navTabsContainer.classList.toggle('mobile-open');
+        });
+
+        // Ocultar el menú automáticamente al seleccionar una pestaña en el celular
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    navTabsContainer.classList.remove('mobile-open');
+                }
+            });
+        });
+
+        // Cerrar el menú si se hace clic fuera de él
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && !navTabsContainer.contains(e.target) && !menuToggleBtn.contains(e.target)) {
+                navTabsContainer.classList.remove('mobile-open');
+            }
+        });
+    }
+
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
