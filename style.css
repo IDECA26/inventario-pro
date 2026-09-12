@@ -452,41 +452,57 @@ body {
     }
 }
 
-/* --- CORRECCIÓN DEFINITIVA DE POSICIÓN DEL MENÚ HAMBURGUESA MÓVIL --- */
+/* --- COMPORTAMIENTO BASE DE LA NAVEGACIÓN (ESCRITORIO) --- */
+.hamburger-btn {
+    display: none !important; /* Oculto por defecto en PC */
+}
+
+.nav-tabs {
+    display: flex !important;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0 1.5rem;
+    gap: 0.5rem;
+    overflow-x: auto;
+}
+
+/* --- ADAPTACIÓN RESPONSIVA PARA DISPOSITIVOS MÓVILES (Pantallas menores a 768px) --- */
 @media screen and (max-width: 768px) {
-    /* Asegurar que el dashboard y el body no creen contenedores flotantes extraños */
-    body, html {
-        overflow-x: hidden;
+    /* 1. Mostrar el botón hamburguesa en móviles */
+    #menu-toggle-btn {
+        display: block !important;
     }
 
-    #dashboard-screen {
-        position: relative;
-    }
-
-    /* Fijar la barra superior para que el menú absolute se despliegue justo debajo de ella */
+    /* 2. Asegurar posición relativa en la barra superior para anclar el menú */
     .top-bar {
         position: relative !important;
-        width: 100% !important;
+        z-index: 1000;
     }
 
-    /* Menú desplegable móvil anclado correctamente arriba */
-    .nav-tabs.mobile-open {
-        display: flex !important;
+    /* 3. Ocultar el menú de pestañas horizontal por defecto en móvil */
+    .nav-tabs {
+        display: none !important; 
         flex-direction: column !important;
         background: #ffffff !important;
         position: absolute !important;
-        top: 100% !important; /* Justo al borde inferior de la barra superior */
+        top: 100% !important;
         left: 0 !important;
         width: 100% !important;
-        max-height: calc(100vh - 60px) !important; /* Evita que sobrepase la pantalla */
-        overflow-y: auto !important; /* Scroll interno si la lista es muy larga */
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
-        z-index: 99999 !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+        z-index: 9999 !important;
         padding: 0.5rem 0 !important;
         margin: 0 !important;
         border-bottom: 3px solid #4f46e5 !important;
+        max-height: calc(100vh - 70px) !important;
+        overflow-y: auto !important;
     }
 
+    /* 4. Clase activa que despliega el menú verticalmente al hacer clic en las 3 rayitas */
+    .nav-tabs.mobile-open {
+        display: flex !important;
+    }
+
+    /* 5. Estilo de los botones dentro del menú móvil desplegado */
     .nav-tabs .tab-btn {
         text-align: left !important;
         width: 100% !important;
