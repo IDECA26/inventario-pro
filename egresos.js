@@ -1,4 +1,4 @@
-// --- MÓDULO MODULAR DE EGRESOS Y DESPACHOS ---
+// --- MÓDULO MODULAR DE EGRESOS Y DESPACHOS (CON HÍBRIDO DE CÁMARA) ---
 
 document.addEventListener('DOMContentLoaded', () => {
     const searchEgressBtn = document.getElementById('search-egress-prod-btn');
@@ -7,10 +7,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const scanEgressBtn = document.getElementById('scan-egress-btn');
-    const cameraInputEgress = document.getElementById('camera-input-egress');
-    if (scanEgressBtn && cameraInputEgress) {
-        scanEgressBtn.addEventListener('click', () => cameraInputEgress.click());
-        cameraInputEgress.addEventListener('change', (e) => handleEgressCameraScan(e));
+    const egressCodeInput = document.getElementById('egress-code');
+
+    if (scanEgressBtn && egressCodeInput) {
+        scanEgressBtn.addEventListener('click', () => {
+            const val = egressCodeInput.value.trim();
+            if (val === '') {
+                // Si está vacío, abre la cámara en vivo
+                openEgressScanner();
+            } else {
+                // Si tiene texto, realiza la búsqueda directa
+                handleSearchEgressProduct();
+            }
+        });
     }
 
     const egressForm = document.getElementById('egress-form');
@@ -19,7 +28,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 1. Buscar producto para egreso por código
+// 1. Abrir escáner de cámara específico para egresos usando el modal global
+function openEgressScanner() {
+    activeScannerTarget = 'egress'; // Vinculamos al objetivo de egresos
+    const modal = document.getElementById('scanner-modal');
+    if (modal) modal.classList.remove('hidden');
+
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+    }
+
+    const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+    html5QrCode.start(
+        { facingMode: "environment" }, 
+        config, 
+        onEgressScanSuccess, 
+        (err) => {}
+    ).catch(err => {
+        console.error("Error al iniciar la cámara:", err);
+        alert("No se pudo acceder a la cámara.");
+        closeScanner();
+    });
+}
+
+async function onEgressScanSuccess(decodedText, decodedResult) {
+    closeScanner();
+    const codeInput = document.getElementById('egress-code');
+    if (codeInput) {
+        codeInput.value = decodedText;
+        await handleSearchEgressProduct();
+    }
+}
+
+// 2. Buscar producto para egreso por código
 async function handleSearchEgressProduct() {
     const codeInput = document.getElementById('egress-code');
     const code = codeInput.value.trim();
@@ -33,7 +75,6 @@ async function handleSearchEgressProduct() {
         let tenantId = await getCurrentTenantId();
         if (!tenantId) return;
 
-        // Buscamos el producto que pertenezca al tenant y coincida con el código o barras
         const { data, error } = await supabaseClient
             .from('products')
             .select('*')
@@ -46,7 +87,6 @@ async function handleSearchEgressProduct() {
         if (data) {
             document.getElementById('egress-product-name').value = data.name || 'Sin nombre';
             document.getElementById('egress-current-stock').value = data.stock ?? 0;
-            // Guardamos factores temporalmente en el formulario para cálculos
             document.getElementById('egress-form').dataset.productId = data.id;
             document.getElementById('egress-form').dataset.boxFactor = data.box_factor || 1;
             document.getElementById('egress-form').dataset.packFactor = data.pack_factor || 1;
@@ -60,37 +100,6 @@ async function handleSearchEgressProduct() {
         console.error('Error al buscar producto para egreso:', error);
         alert('Error al buscar el producto.');
     }
-}
-
-// 2. Escáner de cámara nativo específico para el módulo de egresos
-function handleEgressCameraScan(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, img.width, img.height);
-            
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
-
-            if (code) {
-                document.getElementById('egress-code').value = code.data;
-                handleSearchEgressProduct();
-            } else {
-                alert('No se pudo detectar un código legible en la imagen.');
-            }
-            event.target.value = '';
-        };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
 }
 
 // 3. Procesar el egreso y descontar stock de forma segura
@@ -114,7 +123,6 @@ async function handleProcessEgress(e) {
     const packFactor = parseFloat(form.dataset.packFactor) || 1;
     const baleFactor = parseFloat(form.dataset.baleFactor) || 1;
 
-    // Calcular el total de unidades reales a descontar según el empaque
     let totalUnitsToSubtract = qtyEntered;
     if (packagingUnit === 'caja') totalUnitsToSubtract = qtyEntered * boxFactor;
     else if (packagingUnit === 'paquete') totalUnitsToSubtract = qtyEntered * packFactor;
@@ -128,7 +136,6 @@ async function handleProcessEgress(e) {
     try {
         const newStock = currentStock - totalUnitsToSubtract;
 
-        // Actualizar el stock en la base de datos
         const { error: updateError } = await supabaseClient
             .from('products')
             .update({ stock: newStock })
@@ -136,12 +143,11 @@ async function handleProcessEgress(e) {
 
         if (updateError) throw updateError;
 
-        // Registrar auditoría o movimiento si aplica
         alert(`¡Despacho exitoso (${egressType.toUpperCase()})! Se descontaron ${totalUnitsToSubtract} unidades del inventario.`);
         
         form.reset();
         clearEgressFormFields();
-        if (typeof loadProducts === 'function') loadProducts(); // Refrescar vista general
+        if (typeof loadProducts === 'function') loadProducts();
     } catch (error) {
         console.error('Error al procesar el egreso:', error);
         alert('Error al procesar el egreso: ' + error.message);
@@ -152,10 +158,11 @@ function clearEgressFormFields() {
     document.getElementById('egress-product-name').value = '';
     document.getElementById('egress-current-stock').value = '0';
     const form = document.getElementById('egress-form');
-    delete form.dataset.productId;
+    if (form) {
+        delete form.dataset.productId;
+    }
 }
 
-// Utilidad auxiliar para obtener el tenant_id del usuario logueado
 async function getCurrentTenantId() {
     if (state.user.email === 'altuna.g1@gmail.com') {
         const { data: tenants } = await supabaseClient.from('tenants').select('id').limit(1).maybeSingle();
