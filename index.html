@@ -56,8 +56,7 @@
                 <button id="logout-btn" class="btn-secondary">Salir</button>
             </div>
 
-            <!-- CORRECCION ESTRUCTURAL: El nav ahora es HIJO del header -->
-            <!-- Esto permite que position: absolute se calcule respecto a .top-bar -->
+            <!-- NAVEGACIÓN PRINCIPAL -->
             <nav class="nav-tabs" id="nav-tabs-container">
                 <button class="tab-btn active" data-target="tab-inventory">📦 Productos</button>
                 <button class="tab-btn menu-tab" data-target="tab-ingress" style="display: none;">📥 Ingreso Pro</button>
@@ -210,24 +209,58 @@
                 </div>
             </div>
 
-            <!-- PESTAÑA: ESTADÍSTICAS MINUCIOSAS DE LA EMPRESA -->
+            <!-- PESTAÑA: ESTADÍSTICAS Y CONTROL DEL DEPOSITARIO -->
             <div id="tab-tenant-stats" class="tab-content hidden">
-                <div class="admin-card" style="max-width: 800px; margin: 0 auto;">
-                    <h3>📊 Resumen Estadístico de la Empresa</h3>
-                    <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Métricas exclusivas y control de inventario local asignado a tu empresa.</p>
-                    <div class="stats-grid">
+                <div class="admin-card" style="max-width: 1100px; margin: 0 auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>📊 Panel de Control y Stock por Depósito</h3>
+                        <button type="button" id="export-tenant-pdf-btn" class="btn-secondary">📥 Exportar Informe PDF</button>
+                    </div>
+
+                    <!-- Tarjetas de Resumen Rápido -->
+                    <div class="stats-grid" style="margin-bottom: 20px;">
                         <div class="stat-box">
                             <span class="stat-number" id="tenant-prod-count">0</span>
-                            <span class="stat-label">Productos Registrados</span>
+                            <span class="stat-label">Referencias Registradas</span>
                         </div>
                         <div class="stat-box">
                             <span class="stat-number" id="tenant-total-stock">0</span>
-                            <span class="stat-label">Unidades Totales en Stock</span>
+                            <span class="stat-label">Unidades Totales en Depósito</span>
                         </div>
                         <div class="stat-box">
-                            <span class="stat-number" id="tenant-inventory-value">$0.00</span>
-                            <span class="stat-label">Valor Estimado Inventario</span>
+                            <span class="stat-number" id="tenant-expired-count" style="color: #dc2626;">0</span>
+                            <span class="stat-label">Fuera por Vencimiento (Merma)</span>
                         </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="tenant-pending-changes" style="color: #d97706;">0</span>
+                            <span class="stat-label">En Espera de Cambios</span>
+                        </div>
+                    </div>
+
+                    <!-- Búsqueda Dinámica Específica del Depósito -->
+                    <div class="search-bar-container" style="max-width: 100%; margin-bottom: 15px;">
+                        <input type="text" id="tenant-search-input" placeholder="🔍 Búsqueda dinámica por nombre o código en este depósito..." autocomplete="off">
+                    </div>
+
+                    <!-- Tabla Detallada con Desglose de Presentaciones, Vencimientos y Cambios -->
+                    <div class="table-container">
+                        <table class="audit-table">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Nombre del Producto</th>
+                                    <th>Stock Desglosado (Presentaciones)</th>
+                                    <th>Vencidos (Merma)</th>
+                                    <th>En Espera de Cambio</th>
+                                    <th>Estado / Alerta</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tenant-detailed-stats-body">
+                                <tr>
+                                    <td colspan="6" class="text-center">Cargando inventario del depósito...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
