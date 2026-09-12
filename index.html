@@ -136,6 +136,63 @@
                 </div>
             </div>
 
+            <!-- PESTAÑA: EGRESO / DESPACHO PRO -->
+            <div id="tab-egress" class="tab-content hidden">
+                <div class="admin-card" style="max-width: 700px; margin: 0 auto;">
+                    <h3>📤 Módulo de Egreso y Despacho Pro</h3>
+                    <form id="egress-form">
+                        <div class="form-group">
+                            <label>Código del Producto o Escanear</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="egress-code" required placeholder="Escanee o escriba el código..." autocomplete="off">
+                                <button type="button" id="scan-egress-btn" class="btn-secondary">📷 Cámara</button>
+                                <input type="file" id="camera-input-egress" accept="image/*" capture="environment" style="display: none;">
+                                <button type="button" id="search-egress-prod-btn" class="btn-secondary">Buscar</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Producto Seleccionado</label>
+                            <input type="text" id="egress-product-name" readonly placeholder="El nombre aparecerá al buscar el código..." style="background: #f8fafc;">
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="form-group">
+                                <label>Tipo de Egreso (Motivo)</label>
+                                <select id="egress-type" required>
+                                    <option value="venta">Sala de Ventas</option>
+                                    <option value="transito">En Tránsito (Otro Negocio/Depósito)</option>
+                                    <option value="dañado">Dañados / Merma</option>
+                                    <option value="cambio">En Espera de Cambio / Devolución</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Stock Actual Disponible</label>
+                                <input type="text" id="egress-current-stock" readonly value="0" style="background: #f8fafc; font-weight: bold;">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="form-group">
+                                <label>Empaque a Despachar</label>
+                                <select id="egress-packaging-unit">
+                                    <option value="unidad">Unidades Sueltas</option>
+                                    <option value="caja">Cajas</option>
+                                    <option value="paquete">Paquetes</option>
+                                    <option value="bulto">Bultos / Sacos</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Cantidad de Empaques</label>
+                                <input type="number" step="any" id="egress-quantity" value="1" required min="0.01">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="width: 100%; background-color: #0f172a;">Procesar Egreso y Descontar Stock</button>
+                    </form>
+                </div>
+            </div>
+
             <!-- PESTAÑA 3: ESTADÍSTICAS MINUCIOSAS DE LA EMPRESA -->
             <div id="tab-tenant-stats" class="tab-content hidden">
                 <div class="admin-card" style="max-width: 800px; margin: 0 auto;">
