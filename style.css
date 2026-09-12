@@ -456,3 +456,57 @@ body {
         height: 120px !important;
     }
 }
+
+/* --- ESTILOS DEL MENÚ HAMBURGUESA MÓVIL --- */
+.hamburger-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #1e293b;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.hamburger-btn:hover {
+    background: #f1f5f9;
+}
+
+@media screen and (max-width: 768px) {
+    /* Mostrar el botón hamburguesa en móviles */
+    #menu-toggle-btn {
+        display: block !important;
+    }
+
+    /* Ocultar el menú de pestañas por defecto en móvil y transformarlo en lista desplegable */
+    .nav-tabs {
+        display: none; 
+        flex-direction: column;
+        background: #ffffff;
+        position: absolute;
+        top: 60px;
+        left: 0;
+        width: 100%;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        z-index: 999;
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    /* Clase activa que despliega el menú al hacer clic en las 3 rayitas */
+    .nav-tabs.mobile-open {
+        display: flex !important;
+    }
+
+    .tab-btn {
+        text-align: left;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .tab-btn.active {
+        background: #f8fafc;
+        border-bottom-color: #cbd5e1;
+    }
+}
