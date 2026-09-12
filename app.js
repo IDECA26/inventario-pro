@@ -251,6 +251,8 @@ async function showDashboard() {
 
     await loadProducts();
 }
+// Disparar evento para el control modular de roles
+    window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: { user: state.user } }));
 
 // --- CARGAR PRODUCTOS ---
 async function loadProducts() {
