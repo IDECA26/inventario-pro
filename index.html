@@ -44,14 +44,14 @@
             </div>
         </header>
 
-        <!-- BARRA DE NAVEGACIÓN POR PESTAÑAS (Con clases de control de rol) -->
+        <!-- BARRA DE NAVEGACIÓN POR PESTAÑAS (Todas ocultas por defecto excepto Productos) -->
         <nav class="nav-tabs">
             <button class="tab-btn active" data-target="tab-inventory">📦 Productos</button>
-            <button class="tab-btn restricted-role hidden" data-target="tab-ingress">📥 Ingreso Pro</button>
-            <button class="tab-btn restricted-role hidden" data-target="tab-egress">📤 Egreso / Despacho</button>
-            <button class="tab-btn restricted-role hidden" data-target="tab-tenant-stats">📊 Estadísticas Empresa</button>
-            <button class="tab-btn superadmin-only hidden" data-target="tab-admin-users">⚙️ Admin Empresas/Usuarios</button>
-            <button class="tab-btn superadmin-only hidden" data-target="tab-global-audit">🛡️ Auditoría Global</button>
+            <button class="tab-btn role-tab hidden" data-target="tab-ingress">📥 Ingreso Pro</button>
+            <button class="tab-btn role-tab hidden" data-target="tab-egress">📤 Egreso / Despacho</button>
+            <button class="tab-btn role-tab hidden" data-target="tab-tenant-stats">📊 Estadísticas Empresa</button>
+            <button class="tab-btn role-tab hidden" data-target="tab-admin-users">⚙️ Admin Empresas/Usuarios</button>
+            <button class="tab-btn role-tab hidden" data-target="tab-global-audit">🛡️ Auditoría Global</button>
         </nav>
 
         <main class="main-container">
@@ -293,7 +293,7 @@
                             </thead>
                             <tbody id="audit-log-body">
                                 <tr>
-                                    <td colspan="3" class="text-center">Cargando registros de auditoría...</td>
+                                    <td colspan="3" class="text-center">No hay registros de auditoría recientes.</td>
                                 </tr>
                             </tbody>
                         </table>
