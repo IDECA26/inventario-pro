@@ -19,8 +19,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
-    // Sistema de Pestañas
+    // --- CONTROL DEL MENÚ HAMBURGUESA Y PESTAÑAS ---
+    const menuToggleBtn = document.getElementById('menu-toggle-btn');
+    const navTabsContainer = document.getElementById('nav-tabs-container');
     const tabBtns = document.querySelectorAll('.tab-btn');
+
+    if (menuToggleBtn && navTabsContainer) {
+        // Forzar apertura/cierre al tocar el botón de las 3 rayitas
+        menuToggleBtn.onclick = function(e) {
+            e.stopPropagation();
+            navTabsContainer.classList.toggle('mobile-open');
+        };
+    }
+
+    // Sistema de Pestañas
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const targetId = btn.getAttribute('data-target');
@@ -30,6 +42,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.getElementById(targetId).classList.remove('hidden');
             btn.classList.add('active');
+
+            // Cerrar menú móvil al hacer clic en una opción
+            if (navTabsContainer) {
+                navTabsContainer.classList.remove('mobile-open');
+            }
 
             if (targetId === 'tab-tenant-stats') {
                 loadTenantStats();
@@ -42,31 +59,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Control del Menú Hamburguesa en Dispositivos Móviles
-    const menuToggleBtn = document.getElementById('menu-toggle-btn');
-    const navTabsContainer = document.getElementById('nav-tabs-container');
-
-    if (menuToggleBtn && navTabsContainer) {
-        // Asegurar que el botón responda al toque y al clic
-        menuToggleBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            navTabsContainer.classList.toggle('mobile-open');
-        });
-
-        // Ocultar el menú automáticamente al seleccionar una pestaña
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                navTabsContainer.classList.remove('mobile-open');
-            });
-        });
-
-        // Cerrar el menú si se hace clic en cualquier parte fuera de la barra
-        document.addEventListener('click', (e) => {
+    // Cerrar menú si se toca fuera
+    document.addEventListener('click', (e) => {
+        if (navTabsContainer && menuToggleBtn) {
             if (!navTabsContainer.contains(e.target) && !menuToggleBtn.contains(e.target)) {
                 navTabsContainer.classList.remove('mobile-open');
             }
-        });
-    }
+        }
+    });
 
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
@@ -273,7 +273,6 @@ async function showDashboard() {
         }
     }
 
-    // Disparar evento para el control modular de roles de manera correcta
     window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: { user: state.user } }));
 
     await loadProducts();
