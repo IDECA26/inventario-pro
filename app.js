@@ -47,23 +47,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const navTabsContainer = document.getElementById('nav-tabs-container');
 
     if (menuToggleBtn && navTabsContainer) {
+        // Asegurar que el botón responda al toque y al clic
         menuToggleBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             navTabsContainer.classList.toggle('mobile-open');
         });
 
-        // Ocultar el menú automáticamente al seleccionar una pestaña en el celular
+        // Ocultar el menú automáticamente al seleccionar una pestaña
         tabBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
-                    navTabsContainer.classList.remove('mobile-open');
-                }
+                navTabsContainer.classList.remove('mobile-open');
             });
         });
 
-        // Cerrar el menú si se hace clic fuera de él
+        // Cerrar el menú si se hace clic en cualquier parte fuera de la barra
         document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768 && !navTabsContainer.contains(e.target) && !menuToggleBtn.contains(e.target)) {
+            if (!navTabsContainer.contains(e.target) && !menuToggleBtn.contains(e.target)) {
                 navTabsContainer.classList.remove('mobile-open');
             }
         });
