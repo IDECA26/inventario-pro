@@ -110,6 +110,8 @@ body {
     align-items: center;
     padding: 1rem 2rem;
     border-bottom: 1px solid #e2e8f0;
+    position: relative;
+    z-index: 1000;
 }
 
 .user-info span {
@@ -381,7 +383,6 @@ body {
 /* --- ADAPTACIÓN RESPONSIVA PROFESIONAL PARA DISPOSITIVOS MÓVILES --- */
 
 @media screen and (max-width: 768px) {
-    /* Ajustes generales de contenedores en móvil */
     body {
         font-size: 14px;
     }
@@ -408,25 +409,21 @@ body {
         padding: 1rem;
     }
 
-    /* Paneles de filtros analíticos y de alta gerencia en columna única */
     #tab-advanced-stats div[style*="display: grid"] {
         grid-template-columns: 1fr !important;
         gap: 10px !important;
     }
 
-    /* Tarjetas de estadísticas de resumen en móvil */
     .stats-grid {
         grid-template-columns: 1fr !important;
         gap: 10px;
     }
 
-    /* Formularios de Ingresos y Egresos adaptados */
     form div[style*="display: grid"] {
         grid-template-columns: 1fr !important;
         gap: 10px !important;
     }
 
-    /* Contenedores de búsqueda flexible */
     .search-bar-container {
         flex-direction: column;
     }
@@ -440,7 +437,6 @@ body {
         text-align: center;
     }
 
-    /* Tablas responsivas con desplazamiento horizontal fluido */
     .table-container {
         width: 100%;
         overflow-x: auto;
@@ -448,10 +444,9 @@ body {
     }
 
     .audit-table {
-        min-width: 600px; /* Fuerza el scroll horizontal en lugar de aplastar el texto */
+        min-width: 600px;
     }
 
-    /* Selector múltiple de analítica adaptado a la pantalla táctil */
     #stats-multi-products {
         height: 120px !important;
     }
@@ -473,18 +468,16 @@ body {
 }
 
 @media screen and (max-width: 768px) {
-    /* Mostrar el botón hamburguesa en móviles */
     #menu-toggle-btn {
         display: block !important;
     }
 
-    /* Ocultar el menú de pestañas por defecto en móvil y transformarlo en lista desplegable */
     .nav-tabs {
         display: none; 
         flex-direction: column;
         background: #ffffff;
         position: absolute;
-        top: 60px;
+        top: 100%; /* Se posiciona exactamente debajo de la barra superior */
         left: 0;
         width: 100%;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
@@ -493,7 +486,6 @@ body {
         border-bottom: 1px solid #e2e8f0;
     }
 
-    /* Clase activa que despliega el menú al hacer clic en las 3 rayitas */
     .nav-tabs.mobile-open {
         display: flex !important;
     }
