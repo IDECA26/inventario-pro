@@ -1,6 +1,7 @@
-// --- MÓDULO MODULAR DE ANALÍTICA Y ESTADÍSTICAS PRO (MOTOR GERENCIAL) ---
+// --- MÓDULO MODULAR DE ANALÍTICA Y ESTADÍSTICAS PRO (CON BÚSQUEDA DINÁMICA) ---
 
 let myStatsChart = null;
+let allAvailableProductsForStats = []; // Almacén local para filtrado instantáneo
 
 document.addEventListener('DOMContentLoaded', () => {
     const scopeSelect = document.getElementById('stats-scope');
@@ -47,18 +48,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Escuchar cambios en cualquier filtro gerencial
+    const selectAllBtn = document.getElementById('select-all-products');
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', () => {
+            const multiSelect = document.getElementById('stats-multi-products');
+            if (multiSelect) {
+                Array.from(multiSelect.options).forEach(opt => opt.selected = true);
+                loadAdvancedStatistics();
+            }
+        });
+    }
+
+    // Evento de búsqueda dinámica en tiempo real
+    const productSearchInput = document.getElementById('stats-product-search-input');
+    if (productSearchInput) {
+        productSearchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase().trim();
+            renderProductMultiSelectOptions(term);
+        });
+    }
+
     ['stats-tenant-select', 'stats-timeframe', 'stats-sort-criterion', 'stats-multi-products'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', loadAdvancedStatistics);
     });
 
-    // Inicializar carga de datos
     loadProductsForMultiSelect();
     loadAdvancedStatistics();
 });
 
-// Cargar empresas en el selector
 async function loadCompaniesIntoStatsSelect() {
     const select = document.getElementById('stats-tenant-select');
     if (!select) return;
@@ -80,11 +98,8 @@ async function loadCompaniesIntoStatsSelect() {
     }
 }
 
-// Cargar productos para el selector múltiple filtrados por el ámbito actual
+// Cargar productos base desde Supabase y almacenarlos en memoria
 async function loadProductsForMultiSelect() {
-    const multiSelect = document.getElementById('stats-multi-products');
-    if (!multiSelect) return;
-
     const scope = document.getElementById('stats-scope')?.value || 'global';
     const tenantId = document.getElementById('stats-tenant-select')?.value;
 
@@ -97,15 +112,34 @@ async function loadProductsForMultiSelect() {
         const { data, error } = await query;
         if (error) throw error;
 
-        multiSelect.innerHTML = (data || []).map(p => 
-            `<option value="${p.id}">${p.name} (${p.code || 'S/C'})</option>`
-        ).join('');
+        allAvailableProductsForStats = data || [];
+        renderProductMultiSelectOptions(''); // Renderizar inicial sin filtro de texto
     } catch (err) {
-        console.error('Error al cargar productos para selección múltiple:', err);
+        console.error('Error al cargar productos:', err);
     }
 }
 
-// Motor de cálculo analítico con precisión gerencial y filtros temporales exactos
+// Renderizar dinámicamente las opciones del select múltiple aplicando el filtro de búsqueda
+function renderProductMultiSelectOptions(searchTerm) {
+    const multiSelect = document.getElementById('stats-multi-products');
+    if (!multiSelect) return;
+
+    // Guardar los IDs que ya estaban seleccionados previamente para no perderlos al filtrar
+    const previouslySelectedIds = Array.from(multiSelect.selectedOptions).map(opt => opt.value);
+
+    const filtered = allAvailableProductsForStats.filter(p => {
+        const name = (p.name || '').toLowerCase();
+        const code = (p.code || '').toLowerCase();
+        return name.includes(searchTerm) || code.includes(searchTerm);
+    });
+
+    multiSelect.innerHTML = filtered.map(p => {
+        const isSelected = previouslySelectedIds.includes(p.id) ? 'selected' : '';
+        return `<option value="${p.id}" ${isSelected}>${p.name} (${p.code || 'S/C'})</option>`;
+    }).join('');
+}
+
+// Motor de cálculo analítico gerencial
 async function loadAdvancedStatistics() {
     const scope = document.getElementById('stats-scope')?.value || 'global';
     const tenantId = document.getElementById('stats-tenant-select')?.value;
@@ -119,7 +153,6 @@ async function loadAdvancedStatistics() {
     if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center">Procesando analítica de alta precisión...</td></tr>`;
 
     try {
-        // 1. Obtener productos base
         let queryProducts = supabaseClient.from('products').select('*, tenants(name)');
         if (scope === 'tenant' && tenantId) {
             queryProducts = queryProducts.eq('tenant_id', tenantId);
@@ -127,15 +160,13 @@ async function loadAdvancedStatistics() {
         const { data: productsData, error: prodError } = await queryProducts;
         if (prodError) throw prodError;
 
-        // Filtrar por selección múltiple si el usuario eligió productos específicos
         let filteredProducts = productsData || [];
         if (selectedProductIds.length > 0) {
             filteredProducts = filteredProducts.filter(p => selectedProductIds.includes(p.id));
         }
 
-        // 2. Calcular límites de fecha reales basados en el timeframe seleccionado
         const now = new Date();
-        let startDate = new Date(0); // Histórico por defecto
+        let startDate = new Date(0);
 
         if (timeframe === 'diario') {
             startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -151,26 +182,23 @@ async function loadAdvancedStatistics() {
             startDate = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
         }
 
-        // 3. Obtener registros puros de auditoría / movimientos dentro del rango temporal
         let queryAudit = supabaseClient.from('audit_logs').select('*').gte('created_at', startDate.toISOString());
         if (scope === 'tenant' && tenantId) {
             queryAudit = queryAudit.eq('tenant_id', tenantId);
         }
         const { data: auditData } = await queryAudit;
 
-        // 4. Procesar y cruzar volúmenes de salida reales por producto
         let processedData = filteredProducts.map(prod => {
             const stockReal = parseFloat(prod.stock) || 0;
             let salidasRango = 0;
 
             if (auditData) {
                 auditData.forEach(log => {
-                    // Contabilizamos acciones de egreso o despachos vinculados al código o nombre del producto
                     const isEgreso = log.action && (log.action.toLowerCase().includes('egreso') || log.action.toLowerCase().includes('despacho') || log.action.toLowerCase().includes('salida'));
                     const matchesProduct = log.details && (log.details.includes(prod.code) || log.details.includes(prod.name));
                     
                     if (isEgreso && matchesProduct) {
-                        salidasRango += 1; // Incrementa el volumen transaccional puro en el periodo
+                        salidasRango += 1;
                     }
                 });
             }
@@ -183,7 +211,6 @@ async function loadAdvancedStatistics() {
             };
         });
 
-        // 5. Criterio de Ordenamiento Gerencial
         processedData.sort((a, b) => {
             if (sortCriterion === 'mayor_salida') return b.total_salidas - a.total_salidas;
             if (sortCriterion === 'menor_salida') return a.total_salidas - b.total_salidas;
@@ -192,7 +219,6 @@ async function loadAdvancedStatistics() {
             return 0;
         });
 
-        // 6. Métricas de Resumen Ejecutivo
         const totalMovements = auditData ? auditData.length : 0;
         const totalStockUnits = processedData.reduce((acc, curr) => acc + curr.stock, 0);
         const topProd = processedData.length > 0 && processedData[0].total_salidas > 0 ? processedData[0].name : 'Sin salidas en este periodo';
@@ -201,7 +227,6 @@ async function loadAdvancedStatistics() {
         document.getElementById('adv-stat-units-dispatched').textContent = totalStockUnits;
         document.getElementById('adv-stat-top-product').textContent = topProd;
 
-        // 7. Renderizar Tabla de Alta Precisión
         if (processedData.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" class="text-center">No se encontraron productos o movimientos con los filtros aplicados.</td></tr>`;
         } else {
@@ -230,7 +255,7 @@ async function loadAdvancedStatistics() {
             }).join('');
         }
 
-        renderAnalyticsChart(processedData.slice(0, 10)); // Top 10 para la gráfica gerencial
+        renderAnalyticsChart(processedData.slice(0, 10));
 
     } catch (error) {
         console.error('Error en motor analítico gerencial:', error);
