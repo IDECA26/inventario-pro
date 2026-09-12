@@ -42,9 +42,11 @@
 
     <!-- PANTALLA PRINCIPAL / DASHBOARD CON PESTAÑAS -->
     <div id="dashboard-screen" class="screen hidden">
+        
+        <!-- BARRA SUPERIOR QUE CONTIENE EL LOGO, USUARIO Y EL MENU DE NAVEGACION -->
         <header class="top-bar">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <!-- Botón de Menú Hamburguesa: La visibilidad se controla ahora desde style.css -->
+                <!-- Botón de Menú Hamburguesa: Visible solo en móviles -->
                 <button type="button" id="menu-toggle-btn" class="hamburger-btn">☰</button>
                 <div class="user-info">
                     <span id="user-display-name">Usuario</span>
@@ -53,18 +55,19 @@
             <div class="top-actions">
                 <button id="logout-btn" class="btn-secondary">Salir</button>
             </div>
-        </header>
 
-        <!-- BARRA DE NAVEGACIÓN POR PESTAÑAS (Desplegable en móvil mediante el botón hamburguesa) -->
-        <nav class="nav-tabs" id="nav-tabs-container">
-            <button class="tab-btn active" data-target="tab-inventory">📦 Productos</button>
-            <button class="tab-btn menu-tab" data-target="tab-ingress" style="display: none;">📥 Ingreso Pro</button>
-            <button class="tab-btn menu-tab" data-target="tab-egress" style="display: none;">📤 Egreso / Despacho</button>
-            <button class="tab-btn menu-tab" data-target="tab-tenant-stats" style="display: none;">📊 Estadísticas Empresa</button>
-            <button class="tab-btn menu-tab" data-target="tab-advanced-stats" style="display: none;">📈 Analítica Pro</button>
-            <button class="tab-btn menu-tab" data-target="tab-admin-users" style="display: none;">⚙️ Admin Empresas/Usuarios</button>
-            <button class="tab-btn menu-tab" data-target="tab-global-audit" style="display: none;">🛡️ Auditoría Global</button>
-        </nav>
+            <!-- CORRECCION ESTRUCTURAL: El nav ahora es HIJO del header -->
+            <!-- Esto permite que position: absolute se calcule respecto a .top-bar -->
+            <nav class="nav-tabs" id="nav-tabs-container">
+                <button class="tab-btn active" data-target="tab-inventory">📦 Productos</button>
+                <button class="tab-btn menu-tab" data-target="tab-ingress" style="display: none;">📥 Ingreso Pro</button>
+                <button class="tab-btn menu-tab" data-target="tab-egress" style="display: none;">📤 Egreso / Despacho</button>
+                <button class="tab-btn menu-tab" data-target="tab-tenant-stats" style="display: none;">📊 Estadísticas Empresa</button>
+                <button class="tab-btn menu-tab" data-target="tab-advanced-stats" style="display: none;">📈 Analítica Pro</button>
+                <button class="tab-btn menu-tab" data-target="tab-admin-users" style="display: none;">⚙️ Admin Empresas/Usuarios</button>
+                <button class="tab-btn menu-tab" data-target="tab-global-audit" style="display: none;">🛡️ Auditoría Global</button>
+            </nav>
+        </header>
 
         <main class="main-container">
             
@@ -287,11 +290,9 @@
                                 <button type="button" id="clear-products-selection" class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;">Limpiar</button>
                             </div>
                         </div>
-                        <!-- Input de búsqueda dinámica en tiempo real -->
                         <input type="text" id="stats-product-search-input" placeholder="🔍 Escribe para filtrar productos por nombre o código..." autocomplete="off" style="width: 100%; padding: 6px 10px; margin-bottom: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; outline: none;">
                         
                         <select id="stats-multi-products" multiple style="width: 100%; height: 100px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;">
-                            <!-- Opciones cargadas dinámicamente -->
                         </select>
                     </div>
 

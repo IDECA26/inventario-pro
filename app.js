@@ -16,7 +16,6 @@ let activeScannerTarget = null; // 'search' o 'ingress'
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. DECLARACION DE VARIABLES EN AMBITO SUPERIOR
-    // Esto evita errores de referencia (ReferenceError) al acceder a ellas desde diferentes bloques
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
     const navTabsContainer = document.getElementById('nav-tabs-container');
     const tabBtns = document.querySelectorAll('.tab-btn');
@@ -28,22 +27,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
     // 2. CONTROL UNIFICADO DEL MENU HAMBURGUESA MOVIL
-    // Se consolida en un solo escuchador para evitar redundancias y conflictos de ambito
     document.addEventListener('click', (e) => {
         if (!menuToggleBtn || !navTabsContainer) return;
 
-        // Si se hace clic en el boton de hamburguesa, alternar la clase de visibilidad
         if (menuToggleBtn.contains(e.target)) {
             e.stopPropagation();
             navTabsContainer.classList.toggle('mobile-open');
         } 
-        // Si se hace clic en una pestana, cerrar el menu automaticamente en vista movil
         else if (e.target.classList.contains('tab-btn')) {
             if (window.innerWidth <= 768) {
                 navTabsContainer.classList.remove('mobile-open');
             }
         } 
-        // Si se hace clic fuera del menu y del boton, cerrar el menu
         else if (!navTabsContainer.contains(e.target)) {
             navTabsContainer.classList.remove('mobile-open');
         }
@@ -54,18 +49,15 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', () => {
             const targetId = btn.getAttribute('data-target');
             
-            // Ocultar todos los contenidos y desactivar todas las pestanas
             document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
             tabBtns.forEach(b => b.classList.remove('active'));
 
-            // Mostrar el contenido seleccionado y activar la pestana actual
             const targetElement = document.getElementById(targetId);
             if (targetElement) {
                 targetElement.classList.remove('hidden');
             }
             btn.classList.add('active');
 
-            // Cerrar menu movil al hacer clic en una opcion
             if (navTabsContainer && window.innerWidth <= 768) {
                 navTabsContainer.classList.remove('mobile-open');
             }
