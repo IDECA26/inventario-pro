@@ -121,6 +121,7 @@ body {
     color: #1e293b;
 }
 
+/* Barra de navegacion por pestanas (horizontal en escritorio) */
 .nav-tabs {
     display: flex;
     background: #ffffff;
@@ -382,24 +383,94 @@ body {
     color: #1e293b;
 }
 
-/* --- ADAPTACIÓN RESPONSIVA PROFESIONAL PARA DISPOSITIVOS MÓVILES --- */
+/* ============================================================ */
+/* MEDIA QUERY MOVIL: ANCHO MAXIMO 768px                        */
+/* Aqui se controla toda la adaptacion responsive               */
+/* ============================================================ */
 @media screen and (max-width: 768px) {
     body {
         font-size: 14px;
     }
 
+    body, html {
+        overflow-x: hidden;
+    }
+
     .top-bar {
         padding: 0.75rem 1rem;
+        position: relative !important;
+        width: 100% !important;
     }
 
+    /* CORRECCION CRITICA 1: Hacer visible el boton de hamburguesa */
+    #menu-toggle-btn {
+        display: block !important;
+        font-size: 1.5rem;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: #334155;
+        padding: 0.25rem 0.5rem;
+        line-height: 1;
+    }
+
+    /* CORRECCION CRITICA 2: Ocultar la barra de pestanas horizontal por defecto */
+    /* Sin esta regla, la barra horizontal sigue visible detras del menu vertical */
     .nav-tabs {
-        padding: 0 0.5rem;
-        gap: 0.25rem;
+        display: none !important;
     }
 
-    .tab-btn {
-        padding: 0.75rem 0.85rem;
-        font-size: 0.8rem;
+    /* CORRECCION CRITICA 3: Cuando se activa el menu, mostrarlo VERTICAL */
+    .nav-tabs.mobile-open {
+        display: flex !important;
+        flex-direction: column !important;
+        background: #ffffff !important;
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        width: 100% !important;
+        max-height: calc(100vh - 60px) !important;
+        overflow-y: auto !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+        z-index: 99999 !important;
+        padding: 0.5rem 0 !important;
+        margin: 0 !important;
+        border-bottom: 3px solid #4f46e5 !important;
+        border-radius: 0 0 8px 8px !important;
+    }
+
+    /* Cada boton de pestana ocupa el ancho completo y se alinea a la izquierda */
+    .nav-tabs.mobile-open .tab-btn {
+        text-align: left !important;
+        width: 100% !important;
+        padding: 0.9rem 1.25rem !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        border-left: 4px solid transparent !important;
+        border-right: none !important;
+        white-space: normal !important;
+        font-size: 0.9rem !important;
+        color: #334155 !important;
+        background: transparent !important;
+        border-radius: 0 !important;
+    }
+
+    /* Estado activo de la pestana dentro del menu vertical */
+    .nav-tabs.mobile-open .tab-btn.active {
+        background: #f0f0ff !important;
+        border-left-color: #4f46e5 !important;
+        color: #4f46e5 !important;
+        font-weight: 700 !important;
+    }
+
+    /* Efecto hover en las pestanas del menu vertical */
+    .nav-tabs.mobile-open .tab-btn:hover {
+        background: #f8fafc !important;
+        color: #4f46e5 !important;
+    }
+
+    /* Ajustes generales de contenido en movil */
+    #dashboard-screen {
+        position: relative;
     }
 
     .tab-content {
@@ -453,70 +524,20 @@ body {
     }
 }
 
-/* --- CORRECCIÓN DEFINITIVA DE POSICIÓN Y VISIBILIDAD DEL MENÚ HAMBURGUESA MÓVIL --- */
-@media screen and (max-width: 768px) {
-    /* Asegurar que el dashboard y el body no creen contenedores flotantes extraños */
-    body, html {
-        overflow-x: hidden;
-    }
-
-    #dashboard-screen {
-        position: relative;
-    }
-
-    /* CORRECCION CRITICA: Hacer visible el boton de hamburguesa en moviles */
-    #menu-toggle-btn {
-        display: block !important;
-        font-size: 1.5rem;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        color: #334155;
-    }
-
-    /* Fijar la barra superior para que el menú absolute se despliegue justo debajo de ella */
-    .top-bar {
-        position: relative !important;
-        width: 100% !important;
-    }
-
-    /* Menú desplegable móvil anclado correctamente arriba */
-    .nav-tabs.mobile-open {
-        display: flex !important;
-        flex-direction: column !important;
-        background: #ffffff !important;
-        position: absolute !important;
-        top: 100% !important; /* Justo al borde inferior de la barra superior */
-        left: 0 !important;
-        width: 100% !important;
-        max-height: calc(100vh - 60px) !important; /* Evita que sobrepase la pantalla */
-        overflow-y: auto !important; /* Scroll interno si la lista es muy larga */
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
-        z-index: 99999 !important;
-        padding: 0.5rem 0 !important;
-        margin: 0 !important;
-        border-bottom: 3px solid #4f46e5 !important;
-    }
-
-    .nav-tabs .tab-btn {
-        text-align: left !important;
-        width: 100% !important;
-        padding: 0.9rem 1.25rem !important;
-        border-bottom: 1px solid #f1f5f9 !important;
-        border-left: 4px solid transparent !important;
-        white-space: normal !important;
-    }
-
-    .nav-tabs .tab-btn.active {
-        background: #f8fafc !important;
-        border-left-color: #4f46e5 !important;
-        color: #4f46e5 !important;
-    }
-}
-
-/* En pantallas grandes, el boton de hamburguesa debe permanecer oculto */
+/* ============================================================ */
+/* MEDIA QUERY ESCRITORIO: ANCHO MINIMO 769px                   */
+/* En escritorio el boton hamburguesa permanece oculto           */
+/* y la barra de pestanas se muestra horizontal como siempre     */
+/* ============================================================ */
 @media screen and (min-width: 769px) {
     #menu-toggle-btn {
         display: none !important;
+    }
+
+    /* Asegurar que en escritorio la barra siempre sea horizontal */
+    .nav-tabs {
+        display: flex !important;
+        flex-direction: row !important;
+        position: static !important;
     }
 }
