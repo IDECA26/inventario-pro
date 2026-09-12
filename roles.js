@@ -15,8 +15,9 @@ async function applyUserRolePermissions(user) {
     const tabStats = document.querySelector('[data-target="tab-tenant-stats"]');
     const tabAdminUsers = document.querySelector('[data-target="tab-admin-users"]');
     const tabGlobalAudit = document.querySelector('[data-target="tab-global-audit"]');
+    const tabAdvancedStats = document.querySelector('[data-target="tab-advanced-stats"]');
 
-    const allRestrictedTabs = [tabIngress, tabEgress, tabStats, tabAdminUsers, tabGlobalAudit];
+    const allRestrictedTabs = [tabIngress, tabEgress, tabStats, tabAdminUsers, tabGlobalAudit, tabAdvancedStats];
 
     // Por defecto, ocultamos todas las pestañas restringidas de forma directa
     allRestrictedTabs.forEach(tab => {
@@ -48,9 +49,9 @@ async function applyUserRolePermissions(user) {
         const roleId = userData.roles.id; 
         const roleName = userData.roles.name ? userData.roles.name.toLowerCase() : '';
 
-        // 3. Encender explícitamente mediante display: block las pestañas autorizadas
+        // 3. Encender explícitamente mediante display: block las pestañas autorizadas según el rol
         if (roleId === 'role_ayudante' || roleName === 'ayudante') {
-            // Ayudante: Solo ve Egresos (por ejemplo) y Productos
+            // Ayudante: Solo ve Egresos y Productos
             if (tabEgress) tabEgress.style.display = 'block';
             console.log('Permisos aplicados: Ayudante de Depósito (Operativo)');
         } 
@@ -66,10 +67,11 @@ async function applyUserRolePermissions(user) {
             roleName === 'administrador' || 
             roleName === 'presidente'
         ) {
-            // Administradores y Presidentes locales: Ingresos, Egresos y Estadísticas de su empresa
+            // Administradores y Presidentes locales: Ingresos, Egresos, Estadísticas y Analítica Pro
             if (tabIngress) tabIngress.style.display = 'block';
             if (tabEgress) tabEgress.style.display = 'block';
             if (tabStats) tabStats.style.display = 'block';
+            if (tabAdvancedStats) tabAdvancedStats.style.display = 'block';
             console.log(`Permisos aplicados: Acceso Total Empresa (${roleName.toUpperCase()})`);
         }
 
