@@ -451,51 +451,45 @@ body {
         height: 120px !important;
     }
 }
-
-/* --- ESTILOS DEL MENÚ HAMBURGUESA MÓVIL (CORREGIDO Y FORZADO) --- */
-.hamburger-btn {
-    background: transparent;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #1e293b;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    display: none; /* Oculto por defecto en escritorio */
-}
-
+/* --- CORRECCIÓN DEFINITIVA DE POSICIÓN DEL MENÚ HAMBURGUESA MÓVIL --- */
 @media screen and (max-width: 768px) {
-    /* 1. Mostrar el botón hamburguesa obligatoriamente en móvil */
-    #menu-toggle-btn {
-        display: block !important;
+    /* Asegurar que el dashboard y el body no creen contenedores flotantes extraños */
+    body, html {
+        overflow-x: hidden;
     }
 
-    /* 2. Ocultar la barra horizontal normal y prepararla para menú desplegable */
-    .nav-tabs {
-        display: none !important; /* Oculto por defecto hasta que se presione el botón */
+    #dashboard-screen {
+        position: relative;
+    }
+
+    /* Fijar la barra superior para que el menú absolute se despliegue justo debajo de ella */
+    .top-bar {
+        position: relative !important;
+        width: 100% !important;
+    }
+
+    /* Menú desplegable móvil anclado correctamente arriba */
+    .nav-tabs.mobile-open {
+        display: flex !important;
         flex-direction: column !important;
         background: #ffffff !important;
         position: absolute !important;
-        top: 100% !important;
+        top: 100% !important; /* Justo al borde inferior de la barra superior */
         left: 0 !important;
         width: 100% !important;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15) !important;
-        z-index: 9999 !important;
+        max-height: calc(100vh - 60px) !important; /* Evita que sobrepase la pantalla */
+        overflow-y: auto !important; /* Scroll interno si la lista es muy larga */
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+        z-index: 99999 !important;
         padding: 0.5rem 0 !important;
         margin: 0 !important;
-        border-bottom: 2px solid #cbd5e1 !important;
+        border-bottom: 3px solid #4f46e5 !important;
     }
 
-    /* 3. Clase clave que se activa con JavaScript para desplegarlo */
-    .nav-tabs.mobile-open {
-        display: flex !important;
-    }
-
-    /* 4. Estilo de los botones dentro del menú desplegable móvil */
     .nav-tabs .tab-btn {
         text-align: left !important;
         width: 100% !important;
-        padding: 0.85rem 1.25rem !important;
+        padding: 0.9rem 1.25rem !important;
         border-bottom: 1px solid #f1f5f9 !important;
         border-left: 4px solid transparent !important;
         white-space: normal !important;
