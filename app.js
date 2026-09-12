@@ -164,6 +164,14 @@ async function onScanSuccess(decodedText, decodedResult) {
             codeInput.value = decodedText;
             await handleSearchMasterProduct();
         }
+    } else if (activeScannerTarget === 'egress') {
+        const codeInput = document.getElementById('egress-code');
+        if (codeInput) {
+            codeInput.value = decodedText;
+            if (typeof handleSearchEgressProduct === 'function') {
+                await handleSearchEgressProduct();
+            }
+        }
     }
 }
 
