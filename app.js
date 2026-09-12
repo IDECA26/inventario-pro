@@ -9,6 +9,9 @@ let state = {
     products: []
 };
 
+let html5QrCode = null;
+let activeScannerTarget = null; // 'search' o 'ingress'
+
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
@@ -51,19 +54,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Vinculación de botones de cámara nativa (sin guardar fotos en memoria)
+    // Comportamiento Híbrido para el botón de búsqueda / escáner en inventario
     const scanSearchBtn = document.getElementById('scan-search-btn');
-    const cameraInputSearch = document.getElementById('camera-input-search');
-    if (scanSearchBtn && cameraInputSearch) {
-        scanSearchBtn.addEventListener('click', () => cameraInputSearch.click());
-        cameraInputSearch.addEventListener('change', (e) => handleCameraScan(e, 'search'));
+    if (scanSearchBtn) {
+        scanSearchBtn.addEventListener('click', () => {
+            const val = searchInput.value.trim();
+            if (val === '') {
+                openScanner('search');
+            } else {
+                // Si hay texto, actúa como botón de búsqueda directa
+                const term = val.toLowerCase();
+                const filtered = state.products.filter(prod => 
+                    (prod.name && prod.name.toLowerCase().includes(term)) || 
+                    (prod.code && prod.code.toLowerCase().includes(term))
+                );
+                renderProducts(filtered);
+            }
+        });
     }
 
+    // Comportamiento Híbrido para el botón de cámara en Ingreso Pro
     const scanIngressBtn = document.getElementById('scan-ingress-btn');
-    const cameraInputIngress = document.getElementById('camera-input-ingress');
-    if (scanIngressBtn && cameraInputIngress) {
-        scanIngressBtn.addEventListener('click', () => cameraInputIngress.click());
-        cameraInputIngress.addEventListener('change', (e) => handleCameraScan(e, 'ingress'));
+    const ingressCodeInput = document.getElementById('ingress-code');
+    if (scanIngressBtn && ingressCodeInput) {
+        scanIngressBtn.addEventListener('click', () => {
+            const val = ingressCodeInput.value.trim();
+            if (val === '') {
+                openScanner('ingress');
+            } else {
+                handleSearchMasterProduct();
+            }
+        });
+    }
+
+    const closeScannerBtn = document.getElementById('close-scanner-btn');
+    if (closeScannerBtn) {
+        closeScannerBtn.addEventListener('click', closeScanner);
     }
 
     // Formularios del panel de administración
@@ -93,41 +119,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- LECTOR NATIVO DE CÁMARA (Procesa en RAM sin guardar archivos) ---
-function handleCameraScan(event, targetType) {
-    const file = event.target.files[0];
-    if (!file) return;
+// --- CONTROL DE CÁMARA EN VIVO (Streaming WebRTC) ---
+function openScanner(targetType) {
+    activeScannerTarget = targetType;
+    const modal = document.getElementById('scanner-modal');
+    modal.classList.remove('hidden');
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, img.width, img.height);
-            
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            
-            // Intentar decodificar QR o código compatible
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+    }
 
-            if (code) {
-                processScannedCode(code.data, targetType);
-            } else {
-                alert('No se pudo detectar un código legible en la imagen. Intente de nuevo enfocando bien el código de barras o QR.');
-            }
-            // Limpiar input de archivo para permitir reescanear el mismo código si se desea
-            event.target.value = '';
-        };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+    const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+    html5QrCode.start(
+        { facingMode: "environment" }, 
+        config, 
+        onScanSuccess, 
+        onScanFailure
+    ).catch(err => {
+        console.error("Error al iniciar la cámara:", err);
+        alert("No se pudo acceder a la cámara. Revisa que los permisos estén habilitados en el navegador o app instalada.");
+        closeScanner();
+    });
 }
 
-async function processScannedCode(decodedText, targetType) {
-    if (targetType === 'search') {
+async function onScanSuccess(decodedText, decodedResult) {
+    closeScanner();
+
+    if (activeScannerTarget === 'search') {
         const searchInput = document.getElementById('search-input');
         if (searchInput) {
             searchInput.value = decodedText;
@@ -139,11 +158,28 @@ async function processScannedCode(decodedText, targetType) {
             );
             renderProducts(filtered);
         }
-    } else if (targetType === 'ingress') {
+    } else if (activeScannerTarget === 'ingress') {
         const codeInput = document.getElementById('ingress-code');
         if (codeInput) {
             codeInput.value = decodedText;
             await handleSearchMasterProduct();
+        }
+    }
+}
+
+function onScanFailure(error) {
+    // Ignorar errores por fotograma para mantener rendimiento fluido
+}
+
+async function closeScanner() {
+    const modal = document.getElementById('scanner-modal');
+    if (modal) modal.classList.add('hidden');
+
+    if (html5QrCode && html5QrCode.isScanning) {
+        try {
+            await html5QrCode.stop();
+        } catch (err) {
+            console.error("Error al detener la cámara:", err);
         }
     }
 }
@@ -179,6 +215,7 @@ async function handleLogin(e) {
 
 // --- LOGOUT NATIVO ---
 async function handleLogout() {
+    await closeScanner();
     await supabaseClient.auth.signOut();
     state.user = null;
     state.products = [];
