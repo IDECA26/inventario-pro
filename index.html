@@ -11,6 +11,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="egresos.js"></script>
     <script src="roles.js"></script>
+    <!-- Chart.js para gráficos analíticos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF para exportación de informes en PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -50,6 +54,7 @@
             <button class="tab-btn menu-tab" data-target="tab-ingress" style="display: none;">📥 Ingreso Pro</button>
             <button class="tab-btn menu-tab" data-target="tab-egress" style="display: none;">📤 Egreso / Despacho</button>
             <button class="tab-btn menu-tab" data-target="tab-tenant-stats" style="display: none;">📊 Estadísticas Empresa</button>
+            <button class="tab-btn role-tab hidden" data-target="tab-advanced-stats" style="display: none;">📈 Analítica y Estadísticas Pro</button>
             <button class="tab-btn menu-tab" data-target="tab-admin-users" style="display: none;">⚙️ Admin Empresas/Usuarios</button>
             <button class="tab-btn menu-tab" data-target="tab-global-audit" style="display: none;">🛡️ Auditoría Global</button>
         </nav>
@@ -256,6 +261,104 @@
                             </div>
                             <button type="submit" class="btn-primary">Crear y Asignar Usuario</button>
                         </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PESTAÑA: ANALÍTICA Y ESTADÍSTICAS PRO -->
+            <div id="tab-advanced-stats" class="tab-content hidden">
+                <div class="admin-card" style="max-width: 1100px; margin: 0 auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>📈 Panel Ejecutivo de Analítica y Estadísticas Pro</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button type="button" id="export-pdf-btn" class="btn-secondary">📥 Exportar Informe PDF</button>
+                            <button type="button" id="refresh-stats-btn" class="btn-primary" style="width: auto;">🔄 Actualizar Datos</button>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Filtros Globales y Temporales -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Ámbito de Análisis</label>
+                            <select id="stats-scope">
+                                <option value="global">🌐 Global (Todas las Empresas)</option>
+                                <option value="tenant">🏢 Empresa Específica</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;" id="tenant-filter-container">
+                            <label>Seleccionar Empresa</label>
+                            <select id="stats-tenant-select">
+                                <option value="">Cargando empresas...</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Rango de Tiempo</label>
+                            <select id="stats-timeframe">
+                                <option value="diario">Diario (Hoy)</option>
+                                <option value="semanal">Semanal (Últimos 7 días)</option>
+                                <option value="mensual" selected>Mensual (Último mes)</option>
+                                <option value="trimestral">Trimestral</option>
+                                <option value="semestral">Semestral</option>
+                                <option value="anual">Anual</option>
+                                <option value="historico">Histórico Completo</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Criterio de Ordenamiento</label>
+                            <select id="stats-sort-criterion">
+                                <option value="mayor_salida">🔥 Mayor Salida / Despacho</option>
+                                <option value="menor_salida">🧊 Menor Salida / Sin Movimiento</option>
+                                <option value="mayor_stock">📦 Mayor Stock Actual</option>
+                                <option value="menor_stock">⚠️ Menor Stock Actual (Crítico)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Tarjetas de Resumen Ejecutivo -->
+                    <div class="stats-grid" style="margin-bottom: 25px;">
+                        <div class="stat-box">
+                            <span class="stat-number" id="adv-stat-total-movements">0</span>
+                            <span class="stat-label">Movimientos Registrados</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="adv-stat-units-dispatched">0</span>
+                            <span class="stat-label">Unidades Despachadas (Salidas)</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="adv-stat-top-product">N/A</span>
+                            <span class="stat-label">Producto Estrella (Más Salidas)</span>
+                        </div>
+                    </div>
+
+                    <!-- Gráfica Interactiva (Chart.js) -->
+                    <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 25px;">
+                        <h4 style="margin-bottom: 10px; color: #1e293b;">Gráfica de Rotación y Movimientos</h4>
+                        <div style="position: relative; height: 300px; width: 100%;">
+                            <canvas id="statsChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Tabla Detallada de Rotación de Productos -->
+                    <h4 style="margin-bottom: 10px; color: #1e293b;">Listado Detallado de Productos por Rotación</h4>
+                    <div class="table-container">
+                        <table class="audit-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Empresa / Tenant</th>
+                                    <th>Código</th>
+                                    <th>Nombre del Producto</th>
+                                    <th>Stock Actual</th>
+                                    <th>Total Salidas (Egresos)</th>
+                                    <th>Estado de Rotación</th>
+                                </tr>
+                            </thead>
+                            <tbody id="advanced-stats-table-body">
+                                <tr>
+                                    <td colspan="7" class="text-center">Seleccione los filtros para generar las estadísticas...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
