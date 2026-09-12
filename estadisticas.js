@@ -1,4 +1,4 @@
-// --- MÓDULO MODULAR DE ANALÍTICA Y ESTADÍSTICAS PRO ---
+// --- MÓDULO MODULAR DE ANALÍTICA Y ESTADÍSTICAS PRO (DATOS REALES) ---
 
 let myStatsChart = null;
 
@@ -6,6 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const scopeSelect = document.getElementById('stats-scope');
     const tenantFilterContainer = document.getElementById('tenant-filter-container');
     
+    if (tenantFilterContainer) {
+        tenantFilterContainer.style.display = 'none';
+    }
+
     if (scopeSelect) {
         scopeSelect.addEventListener('change', (e) => {
             if (e.target.value === 'global') {
@@ -28,62 +32,90 @@ document.addEventListener('DOMContentLoaded', () => {
         exportPdfBtn.addEventListener('click', exportStatsToPDF);
     }
 
-    // Recalcular al cambiar cualquier filtro
     ['stats-tenant-select', 'stats-timeframe', 'stats-sort-criterion'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', loadAdvancedStatistics);
     });
+
+    loadAdvancedStatistics();
 });
 
 async function loadCompaniesIntoStatsSelect() {
     const select = document.getElementById('stats-tenant-select');
     if (!select) return;
     try {
+        select.innerHTML = `<option value="">Cargando empresas...</option>`;
         const { data, error } = await supabaseClient.from('tenants').select('id, name');
         if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            select.innerHTML = `<option value="">No hay empresas registradas</option>`;
+            return;
+        }
+
         select.innerHTML = `<option value="">Seleccione una empresa...</option>` + 
             data.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
     } catch (err) {
         console.error('Error al cargar empresas para estadísticas:', err);
+        select.innerHTML = `<option value="">Error al cargar empresas</option>`;
     }
 }
 
-// Función principal de carga y procesamiento analítico
 async function loadAdvancedStatistics() {
-    const scope = document.getElementById('stats-scope').value;
+    const scope = document.getElementById('stats-scope')?.value || 'global';
     const tenantId = document.getElementById('stats-tenant-select')?.value;
-    const timeframe = document.getElementById('stats-timeframe').value;
-    const sortCriterion = document.getElementById('stats-sort-criterion').value;
+    const sortCriterion = document.getElementById('stats-sort-criterion')?.value || 'mayor_salida';
 
     const tbody = document.getElementById('advanced-stats-table-body');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center">Calculando métricas analíticas...</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center">Consultando datos reales en Supabase...</td></tr>`;
 
     try {
-        // 1. Construir consulta de auditoría/movimientos o productos según los filtros temporales
+        // 1. Obtener productos vinculados con su empresa (tenant)
         let queryProducts = supabaseClient.from('products').select('*, tenants(name)');
         
-        if (scope === 'tenant' && tenantId) {
+        if (scope === 'tenant') {
+            if (!tenantId) {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center">Por favor, seleccione una empresa para ver sus estadísticas.</td></tr>`;
+                return;
+            }
             queryProducts = queryProducts.eq('tenant_id', tenantId);
         }
 
         const { data: productsData, error: prodError } = await queryProducts;
         if (prodError) throw prodError;
 
-        // Simulamos o procesamos métricas de movimiento basadas en stock y rotación ponderada
-        // (Nota: Si posees una tabla específica de logs de egresos detallados, se cruza aquí. Procesaremos con la data robusta disponible)
+        // 2. Consultar registros reales de auditoría / movimientos para cruzar volúmenes reales
+        let queryAudit = supabaseClient.from('audit_logs').select('*');
+        if (scope === 'tenant' && tenantId) {
+            queryAudit = queryAudit.eq('tenant_id', tenantId);
+        }
+        const { data: auditData } = await queryAudit;
+
+        // 3. Mapeo con valores reales extraídos de la base de datos
         let processedData = (productsData || []).map(prod => {
-            // Estimación analítica de salidas basada en stock y factores para demostración de rotación
-            const stock = parseFloat(prod.stock) || 0;
-            // Factor analítico simulado de rotación para clasificar mayor/menor salida
-            const simulatedSalidas = Math.max(0, Math.floor((100 - stock) * 1.5)); 
+            const stockReal = parseFloat(prod.stock) || 0;
+            
+            // Contabilizar movimientos reales desde la auditoría si el nombre o código coincide en los detalles
+            let salidasReales = 0;
+            if (auditData) {
+                auditData.forEach(log => {
+                    if (log.details && (log.details.includes(prod.code) || log.details.includes(prod.name))) {
+                        if (log.action && log.action.toLowerCase().includes('egreso')) {
+                            salidasReales += 1; 
+                        }
+                    }
+                });
+            }
+
             return {
                 ...prod,
-                total_salidas: simulatedSalidas,
+                stock: stockReal,
+                total_salidas: salidasReales, // Salidas reales basadas en transacciones
                 tenant_name: prod.tenants ? prod.tenants.name : 'Empresa General'
             };
         });
 
-        // 2. Ordenamiento según el criterio seleccionado
+        // 4. Ordenamiento dinámico según el criterio seleccionado
         processedData.sort((a, b) => {
             if (sortCriterion === 'mayor_salida') return b.total_salidas - a.total_salidas;
             if (sortCriterion === 'menor_salida') return a.total_salidas - b.total_salidas;
@@ -92,23 +124,23 @@ async function loadAdvancedStatistics() {
             return 0;
         });
 
-        // 3. Actualizar tarjetas de resumen
-        const totalMovements = processedData.reduce((acc, curr) => acc + curr.total_salidas, 0);
-        const totalUnits = processedData.reduce((acc, curr) => acc + (parseFloat(curr.stock) || 0), 0);
-        const topProd = processedData.length > 0 ? processedData[0].name : 'N/A';
+        // 5. Métricas de resumen ejecutivo basadas en datos reales
+        const totalMovements = auditData ? auditData.length : 0;
+        const totalUnits = processedData.reduce((acc, curr) => acc + curr.stock, 0);
+        const topProd = processedData.length > 0 && processedData[0].total_salidas > 0 ? processedData[0].name : 'Sin movimientos recientes';
 
         document.getElementById('adv-stat-total-movements').textContent = totalMovements;
         document.getElementById('adv-stat-units-dispatched').textContent = totalUnits;
         document.getElementById('adv-stat-top-product').textContent = topProd;
 
-        // 4. Renderizar Tabla Detallada
+        // 6. Renderizar Tabla Detallada con información real
         if (processedData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center">No se encontraron registros para los filtros seleccionados.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center">No se encontraron productos registrados para este ámbito.</td></tr>`;
         } else {
             tbody.innerHTML = processedData.map((item, index) => {
                 let badgeClass = 'badge-normal';
                 let rotacionText = 'Rotación Normal';
-                if (item.total_salidas > 50) {
+                if (item.total_salidas > 10) {
                     badgeClass = 'badge-high';
                     rotacionText = '🔥 Alta Rotación';
                 } else if (item.total_salidas === 0) {
@@ -130,18 +162,17 @@ async function loadAdvancedStatistics() {
             }).join('');
         }
 
-        // 5. Renderizar Gráfica Interactiva con Chart.js
-        renderAnalyticsChart(processedData.slice(0, 8)); // Top 8 productos para la gráfica
+        renderAnalyticsChart(processedData.slice(0, 8));
 
     } catch (error) {
-        console.error('Error al generar estadísticas avanzadas:', error);
-        if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center">Error al cargar las estadísticas.</td></tr>`;
+        console.error('Error al generar estadísticas avanzadas con datos reales:', error);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center">Error al conectar con las estadísticas de Supabase.</td></tr>`;
     }
 }
 
 function renderAnalyticsChart(topProducts) {
     const ctx = document.getElementById('statsChart');
-    if (!ctx) return;
+    if (!ctx || typeof Chart === 'undefined') return;
 
     const labels = topProducts.map(p => p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name);
     const dataValues = topProducts.map(p => p.total_salidas);
@@ -155,7 +186,7 @@ function renderAnalyticsChart(topProducts) {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Volumen de Salidas (Despachos)',
+                label: 'Volumen de Salidas Reales',
                 data: dataValues,
                 backgroundColor: '#4f46e5',
                 borderRadius: 6
@@ -174,8 +205,11 @@ function renderAnalyticsChart(topProducts) {
     });
 }
 
-// 6. Exportar Informe en PDF con jsPDF
 function exportStatsToPDF() {
+    if (typeof window.jspdf === 'undefined') {
+        alert('Librería PDF no cargada aún.');
+        return;
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
@@ -204,7 +238,6 @@ function exportStatsToPDF() {
     doc.setFont("helvetica", "bold");
     doc.text("Detalle de Rotación de Productos:", 14, yPos);
 
-    // Capturar filas de la tabla analítica
     const rows = document.querySelectorAll('#advanced-stats-table-body tr');
     yPos += 8;
     
@@ -219,7 +252,7 @@ function exportStatsToPDF() {
 
     yPos += 8;
     rows.forEach((row, idx) => {
-        if (idx > 15) return; // Limitar primera página del PDF
+        if (idx > 15) return;
         const cols = row.querySelectorAll('td');
         if (cols.length >= 6) {
             yPos += 6;
