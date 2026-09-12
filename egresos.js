@@ -13,10 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
         scanEgressBtn.addEventListener('click', () => {
             const val = egressCodeInput.value.trim();
             if (val === '') {
-                // Si está vacío, abre la cámara en vivo
                 openEgressScanner();
             } else {
-                // Si tiene texto, realiza la búsqueda directa
                 handleSearchEgressProduct();
             }
         });
@@ -28,9 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 1. Abrir escáner de cámara específico para egresos usando el modal global
 function openEgressScanner() {
-    activeScannerTarget = 'egress'; // Vinculamos al objetivo de egresos
+    activeScannerTarget = 'egress';
     const modal = document.getElementById('scanner-modal');
     if (modal) modal.classList.remove('hidden');
 
@@ -61,7 +58,6 @@ async function onEgressScanSuccess(decodedText, decodedResult) {
     }
 }
 
-// 2. Buscar producto para egreso por código
 async function handleSearchEgressProduct() {
     const codeInput = document.getElementById('egress-code');
     const code = codeInput.value.trim();
@@ -102,7 +98,6 @@ async function handleSearchEgressProduct() {
     }
 }
 
-// 3. Procesar el egreso y descontar stock de forma segura
 async function handleProcessEgress(e) {
     e.preventDefault();
 

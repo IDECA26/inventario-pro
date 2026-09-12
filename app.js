@@ -62,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (val === '') {
                 openScanner('search');
             } else {
-                // Si hay texto, actúa como botón de búsqueda directa
                 const term = val.toLowerCase();
                 const filtered = state.products.filter(prod => 
                     (prod.name && prod.name.toLowerCase().includes(term)) || 
@@ -240,27 +239,19 @@ async function showDashboard() {
     document.getElementById('dashboard-screen').classList.remove('hidden');
     
     const nameDisplay = document.getElementById('user-display-name');
-    const superadminTabs = document.querySelectorAll('.superadmin-only');
 
     if (state.user) {
         const isSuperAdmin = state.user.email === 'altuna.g1@gmail.com';
         if (nameDisplay) {
             nameDisplay.textContent = state.user.email + (isSuperAdmin ? ' (SuperAdmin Global)' : '');
         }
-        
-        superadminTabs.forEach(tab => {
-            if (isSuperAdmin) {
-                tab.classList.remove('hidden');
-            } else {
-                tab.classList.add('hidden');
-            }
-        });
     }
+
+    // Disparar evento para el control modular de roles de manera correcta
+    window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: { user: state.user } }));
 
     await loadProducts();
 }
-// Disparar evento para el control modular de roles
-    window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: { user: state.user } }));
 
 // --- CARGAR PRODUCTOS ---
 async function loadProducts() {
