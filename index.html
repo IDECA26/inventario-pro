@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="style.css">
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
-    <!-- Librería Html5-Qrcode para escáner por cámara -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <!-- Librería de lectura de códigos QR y de barras desde imagen en memoria -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
 <body>
 
@@ -47,7 +47,6 @@
             <button class="tab-btn active" data-target="tab-inventory">📦 Productos</button>
             <button class="tab-btn" data-target="tab-ingress">📥 Ingreso Pro</button>
             <button class="tab-btn" data-target="tab-tenant-stats">📊 Estadísticas Empresa</button>
-            <!-- Pestañas exclusivas de Superadmin -->
             <button class="tab-btn superadmin-only hidden" data-target="tab-admin-users">⚙️ Admin Empresas/Usuarios</button>
             <button class="tab-btn superadmin-only hidden" data-target="tab-global-audit">🛡️ Auditoría Global</button>
         </nav>
@@ -58,7 +57,9 @@
             <div id="tab-inventory" class="tab-content">
                 <div class="search-bar-container">
                     <input type="text" id="search-input" placeholder="Buscar por nombre o código..." autocomplete="off">
-                    <button id="scan-search-btn" class="btn-icon">📷 Escanear</button>
+                    <button type="button" id="scan-search-btn" class="btn-icon">📷 Escanear</button>
+                    <!-- Input oculto nativo para activar la cámara sin guardar fotos -->
+                    <input type="file" id="camera-input-search" accept="image/*" capture="environment" style="display: none;">
                 </div>
                 <div id="loading-indicator" class="loading hidden">Cargando productos...</div>
                 <div id="product-list" class="product-grid"></div>
@@ -74,6 +75,8 @@
                             <div style="display: flex; gap: 10px;">
                                 <input type="text" id="ingress-code" required placeholder="Escanee o escriba el código..." autocomplete="off">
                                 <button type="button" id="scan-ingress-btn" class="btn-secondary">📷 Cámara</button>
+                                <!-- Input oculto nativo para ingreso pro -->
+                                <input type="file" id="camera-input-ingress" accept="image/*" capture="environment" style="display: none;">
                                 <button type="button" id="search-master-btn" class="btn-secondary">Buscar</button>
                             </div>
                         </div>
@@ -243,20 +246,6 @@
             </div>
 
         </main>
-    </div>
-
-    <!-- MODAL DE ESCANER DE CÁMARA -->
-    <div id="scanner-modal" class="modal hidden">
-        <div class="modal-content" style="max-width: 450px; text-align: center;">
-            <div class="modal-header">
-                <h3>Escanear Código de Barras / QR</h3>
-                <button id="close-scanner-btn" class="close-btn">&times;</button>
-            </div>
-            <div style="padding: 1rem 0;">
-                <div id="reader" style="width: 100%;"></div>
-            </div>
-            <p style="font-size: 0.85rem; color: #64748b; margin-top: 10px;">Apunta la cámara hacia el código de barras o código QR del producto.</p>
-        </div>
     </div>
 
     <script src="app.js"></script>
