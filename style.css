@@ -452,7 +452,7 @@ body {
     }
 }
 
-/* --- ESTILOS DEL MENÚ HAMBURGUESA MÓVIL --- */
+/* --- ESTILOS DEL MENÚ HAMBURGUESA MÓVIL (CORREGIDO Y FORZADO) --- */
 .hamburger-btn {
     background: transparent;
     border: none;
@@ -461,44 +461,49 @@ body {
     color: #1e293b;
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
-}
-
-.hamburger-btn:hover {
-    background: #f1f5f9;
+    display: none; /* Oculto por defecto en escritorio */
 }
 
 @media screen and (max-width: 768px) {
+    /* 1. Mostrar el botón hamburguesa obligatoriamente en móvil */
     #menu-toggle-btn {
         display: block !important;
     }
 
+    /* 2. Ocultar la barra horizontal normal y prepararla para menú desplegable */
     .nav-tabs {
-        display: none; 
-        flex-direction: column;
-        background: #ffffff;
-        position: absolute;
-        top: 100%; /* Se posiciona exactamente debajo de la barra superior */
-        left: 0;
-        width: 100%;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        z-index: 999;
-        padding: 0.5rem 1rem;
-        border-bottom: 1px solid #e2e8f0;
+        display: none !important; /* Oculto por defecto hasta que se presione el botón */
+        flex-direction: column !important;
+        background: #ffffff !important;
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        width: 100% !important;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15) !important;
+        z-index: 9999 !important;
+        padding: 0.5rem 0 !important;
+        margin: 0 !important;
+        border-bottom: 2px solid #cbd5e1 !important;
     }
 
+    /* 3. Clase clave que se activa con JavaScript para desplegarlo */
     .nav-tabs.mobile-open {
         display: flex !important;
     }
 
-    .tab-btn {
-        text-align: left;
-        width: 100%;
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid #f1f5f9;
+    /* 4. Estilo de los botones dentro del menú desplegable móvil */
+    .nav-tabs .tab-btn {
+        text-align: left !important;
+        width: 100% !important;
+        padding: 0.85rem 1.25rem !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        border-left: 4px solid transparent !important;
+        white-space: normal !important;
     }
 
-    .tab-btn.active {
-        background: #f8fafc;
-        border-bottom-color: #cbd5e1;
+    .nav-tabs .tab-btn.active {
+        background: #f8fafc !important;
+        border-left-color: #4f46e5 !important;
+        color: #4f46e5 !important;
     }
 }
