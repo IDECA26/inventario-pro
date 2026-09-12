@@ -9,16 +9,28 @@ document.addEventListener('DOMContentLoaded', () => {
 async function applyUserRolePermissions(user) {
     if (!user) return;
 
-    const roleTabs = document.querySelectorAll('.role-tab');
+    // Seleccionamos los botones de las pestañas según su atributo data-target
+    const tabIngress = document.querySelector('[data-target="tab-ingress"]');
+    const tabEgress = document.querySelector('[data-target="tab-egress"]');
+    const tabStats = document.querySelector('[data-target="tab-tenant-stats"]');
+    const tabAdminUsers = document.querySelector('[data-target="tab-admin-users"]');
+    const tabGlobalAudit = document.querySelector('[data-target="tab-global-audit"]');
 
-    // 1. Si es el SuperAdmin global por excelencia (`altuna.g1@gmail.com`) -> Muestra todo
+    const allRestrictedTabs = [tabIngress, tabEgress, tabStats, tabAdminUsers, tabGlobalAudit];
+
+    // Por defecto, ocultamos todas las pestañas restringidas de forma directa
+    allRestrictedTabs.forEach(tab => {
+        if (tab) tab.style.display = 'none';
+    });
+
+    // 1. Si es el SuperAdmin global por excelencia (`altuna.g1@gmail.com`) -> Mostrar todo
     if (user.email === 'altuna.g1@gmail.com') {
-        roleTabs.forEach(el => el.classList.remove('hidden'));
+        allRestrictedTabs.forEach(tab => {
+            if (tab) tab.style.display = 'block';
+        });
+        console.log('Permisos aplicados: SuperAdmin Global (Acceso Total)');
         return;
     }
-
-    // Por defecto ocultamos todas las pestañas avanzadas
-    roleTabs.forEach(el => el.classList.add('hidden'));
 
     try {
         // 2. Consultar el rol del usuario en la base de datos
@@ -33,19 +45,19 @@ async function applyUserRolePermissions(user) {
             return;
         }
 
-        const roleId = userData.roles.id; // Ej: 'role_depositario', 'role_ayudante', 'role_administrador', 'role_presidente'
+        const roleId = userData.roles.id; 
         const roleName = userData.roles.name ? userData.roles.name.toLowerCase() : '';
 
-        // 3. Encender selectivamente las pestañas permitidas según el rol exacto
+        // 3. Encender explícitamente mediante display: block las pestañas autorizadas
         if (roleId === 'role_ayudante' || roleName === 'ayudante') {
-            // Ayudante: Solo ve Productos y Egresos operativos
-            document.querySelector('[data-target="tab-egress"]').classList.remove('hidden');
+            // Ayudante: Solo ve Egresos (por ejemplo) y Productos
+            if (tabEgress) tabEgress.style.display = 'block';
             console.log('Permisos aplicados: Ayudante de Depósito (Operativo)');
         } 
         else if (roleId === 'role_depositario' || roleName === 'depositario') {
-            // Depositario: Ve Inventario, Ingreso Pro y Egreso
-            document.querySelector('[data-target="tab-ingress"]').classList.remove('hidden');
-            document.querySelector('[data-target="tab-egress"]').classList.remove('hidden');
+            // Depositario: Ve Ingresos y Egresos
+            if (tabIngress) tabIngress.style.display = 'block';
+            if (tabEgress) tabEgress.style.display = 'block';
             console.log('Permisos aplicados: Usuario Depositario');
         } 
         else if (
@@ -54,10 +66,10 @@ async function applyUserRolePermissions(user) {
             roleName === 'administrador' || 
             roleName === 'presidente'
         ) {
-            // Administradores y Presidentes locales: Ven Ingresos, Egresos y Estadísticas de su empresa
-            document.querySelector('[data-target="tab-ingress"]').classList.remove('hidden');
-            document.querySelector('[data-target="tab-egress"]').classList.remove('hidden');
-            document.querySelector('[data-target="tab-tenant-stats"]').classList.remove('hidden');
+            // Administradores y Presidentes locales: Ingresos, Egresos y Estadísticas de su empresa
+            if (tabIngress) tabIngress.style.display = 'block';
+            if (tabEgress) tabEgress.style.display = 'block';
+            if (tabStats) tabStats.style.display = 'block';
             console.log(`Permisos aplicados: Acceso Total Empresa (${roleName.toUpperCase()})`);
         }
 
