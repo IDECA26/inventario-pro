@@ -273,13 +273,19 @@
                         </div>
                     </div>
 
-                    <!-- Selector Múltiple de Productos -->
+                    <!-- Selector Múltiple de Productos con Búsqueda Dinámica -->
                     <div style="background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 20px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <label style="font-weight: bold; color: #1e293b; font-size: 0.9rem;">Filtro Multi-Producto (Selecciona uno o varios, o deja vacío para todos)</label>
-                            <button type="button" id="clear-products-selection" class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;">Limpiar Selección</button>
+                            <label style="font-weight: bold; color: #1e293b; font-size: 0.9rem;">Filtro Multi-Producto (Selecciona uno, varios o busca en tiempo real)</label>
+                            <div style="display: flex; gap: 5px;">
+                                <button type="button" id="select-all-products" class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;">Seleccionar Visibles</button>
+                                <button type="button" id="clear-products-selection" class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;">Limpiar</button>
+                            </div>
                         </div>
-                        <select id="stats-multi-products" multiple style="width: 100%; height: 90px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;">
+                        <!-- Input de búsqueda dinámica en tiempo real -->
+                        <input type="text" id="stats-product-search-input" placeholder="🔍 Escribe para filtrar productos por nombre o código..." autocomplete="off" style="width: 100%; padding: 6px 10px; margin-bottom: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; outline: none;">
+                        
+                        <select id="stats-multi-products" multiple style="width: 100%; height: 100px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;">
                             <!-- Opciones cargadas dinámicamente -->
                         </select>
                     </div>
