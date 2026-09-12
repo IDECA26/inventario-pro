@@ -19,18 +19,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
-    // --- CONTROL DEL MENÚ HAMBURGUESA Y PESTAÑAS ---
+    // --- CONTROL GLOBAL DEL MENÚ HAMBURGUESA MÓVIL ---
+document.addEventListener('click', (e) => {
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
     const navTabsContainer = document.getElementById('nav-tabs-container');
-    const tabBtns = document.querySelectorAll('.tab-btn');
 
-    if (menuToggleBtn && navTabsContainer) {
-        // Forzar apertura/cierre al tocar el botón de las 3 rayitas
-        menuToggleBtn.onclick = function(e) {
-            e.stopPropagation();
-            navTabsContainer.classList.toggle('mobile-open');
-        };
+    if (!menuToggleBtn || !navTabsContainer) return;
+
+    // Si se hace clic en el botón de las 3 rayitas
+    if (menuToggleBtn.contains(e.target)) {
+        e.stopPropagation();
+        navTabsContainer.classList.toggle('mobile-open');
+    } 
+    // Si se hace clic en cualquier pestaña dentro del menú en móvil, se cierra automáticamente
+    else if (e.target.classList.contains('tab-btn')) {
+        if (window.innerWidth <= 768) {
+            navTabsContainer.classList.remove('mobile-open');
+        }
+    } 
+    // Si se hace clic fuera del menú hamburguesa, se cierra
+    else if (!navTabsContainer.contains(e.target)) {
+        navTabsContainer.classList.remove('mobile-open');
     }
+});
 
     // Sistema de Pestañas
     tabBtns.forEach(btn => {
