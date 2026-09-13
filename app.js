@@ -1,6 +1,6 @@
 // RUTA: inventario-pro/app.js
 
-// --- CONFIGURACIÓN DE SUPABASE ---
+// CONFIGURACION DE SUPABASE
 const SUPABASE_URL = 'https://xqisaqjswazjawzeguuj.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxaXNhcWpzd2F6amF3emVndXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODE1MjQsImV4cCI6MjEwMTc1NzUyNH0.TGegMa4OXGN45MqHpKMbNQk0kGiKTGIdmwLQvCelvCA';
 
@@ -12,10 +12,9 @@ let state = {
 };
 
 let html5QrCode = null;
-let activeScannerTarget = null; // 'search' o 'ingress'
+let activeScannerTarget = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. DECLARACION DE VARIABLES EN AMBITO SUPERIOR
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
     const navTabsContainer = document.getElementById('nav-tabs-container');
     const tabBtns = document.querySelectorAll('.tab-btn');
@@ -26,32 +25,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
-    // 2. CONTROL UNIFICADO DEL MENU HAMBURGUESA MOVIL
     document.addEventListener('click', (e) => {
         if (!menuToggleBtn || !navTabsContainer) return;
-
         if (menuToggleBtn.contains(e.target)) {
             e.stopPropagation();
             navTabsContainer.classList.toggle('mobile-open');
-        } 
-        else if (e.target.classList.contains('tab-btn')) {
+        } else if (e.target.classList.contains('tab-btn')) {
             if (window.innerWidth <= 768) {
                 navTabsContainer.classList.remove('mobile-open');
             }
-        } 
-        else if (!navTabsContainer.contains(e.target)) {
+        } else if (!navTabsContainer.contains(e.target)) {
             navTabsContainer.classList.remove('mobile-open');
         }
     });
 
-    // 3. SISTEMA DE PESTANAS
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const targetId = btn.getAttribute('data-target');
-            
             document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
             tabBtns.forEach(b => b.classList.remove('active'));
-
             const targetElement = document.getElementById(targetId);
             if (targetElement) {
                 targetElement.classList.remove('hidden');
@@ -74,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 4. LOGICA DE BUSQUEDA Y ESCANER EN INVENTARIO
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -104,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 5. LOGICA DE ESCANER EN INGRESO PRO
     const scanIngressBtn = document.getElementById('scan-ingress-btn');
     const ingressCodeInput = document.getElementById('ingress-code');
     if (scanIngressBtn && ingressCodeInput) {
@@ -123,14 +113,12 @@ document.addEventListener('DOMContentLoaded', () => {
         closeScannerBtn.addEventListener('click', closeScanner);
     }
 
-    // 6. FORMULARIOS DEL PANEL DE ADMINISTRACION
     const createCompanyForm = document.getElementById('create-company-form');
     if (createCompanyForm) createCompanyForm.addEventListener('submit', handleCreateCompany);
 
     const createUserForm = document.getElementById('create-user-form');
     if (createUserForm) createUserForm.addEventListener('submit', handleCreateUser);
 
-    // 7. MODULO DE INGRESO PRO
     const searchMasterBtn = document.getElementById('search-master-btn');
     if (searchMasterBtn) {
         searchMasterBtn.addEventListener('click', handleSearchMasterProduct);
@@ -141,7 +129,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ingressForm.addEventListener('submit', handleIngressMercancia);
     }
 
-    // 8. COMPROBAR SESION ACTIVA NATIVA
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
         if (session) {
             state.user = session.user;
@@ -149,24 +136,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 9. CONFIGURACIÓN DEL MODAL DE EDICIÓN DE USUARIO
     const closeEditModal = () => {
         const modal = document.getElementById('edit-user-modal');
         if (modal) modal.classList.add('hidden');
     };
-
     const closeEditBtn = document.getElementById('close-edit-modal-btn');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     if (closeEditBtn) closeEditBtn.addEventListener('click', closeEditModal);
     if (cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
-
     const editForm = document.getElementById('edit-user-form');
     if (editForm) {
         editForm.addEventListener('submit', handleUpdateUser);
     }
 });
 
-// --- CONTROL DE CÁMARA EN VIVO (Streaming WebRTC) ---
 function openScanner(targetType) {
     activeScannerTarget = targetType;
     const modal = document.getElementById('scanner-modal');
@@ -184,8 +167,8 @@ function openScanner(targetType) {
         onScanSuccess, 
         onScanFailure
     ).catch(err => {
-        console.error("Error al iniciar la cámara:", err);
-        alert("No se pudo acceder a la cámara. Revisa que los permisos estén habilitados en el navegador o app instalada.");
+        console.error("Error al iniciar la camara:", err);
+        alert("No se pudo acceder a la camara. Revisa que los permisos esten habilitados en el navegador o app instalada.");
         closeScanner();
     });
 }
@@ -234,12 +217,11 @@ async function closeScanner() {
         try {
             await html5QrCode.stop();
         } catch (err) {
-            console.error("Error al detener la cámara:", err);
+            console.error("Error al detener la camara:", err);
         }
     }
 }
 
-// --- LOGIN NATIVO DE SUPABASE ---
 async function handleLogin(e) {
     e.preventDefault();
     const emailInput = document.getElementById('username');
@@ -262,13 +244,12 @@ async function handleLogin(e) {
         state.user = data.user;
         showDashboard();
     } catch (error) {
-        showAlert('Correo o contraseña incorrectos', 'error');
+        showAlert('Correo o contrasena incorrectos', 'error');
     } finally {
         setLoadingLogin(false, 'Ingresar');
     }
 }
 
-// --- LOGOUT NATIVO ---
 async function handleLogout() {
     await closeScanner();
     await supabaseClient.auth.signOut();
@@ -296,11 +277,9 @@ async function showDashboard() {
     }
 
     window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: { user: state.user } }));
-
     await loadProducts();
 }
 
-// --- CARGAR PRODUCTOS ---
 async function loadProducts() {
     const loadingIndicator = document.getElementById('loading-indicator');
     if (loadingIndicator) loadingIndicator.classList.remove('hidden');
@@ -316,7 +295,7 @@ async function loadProducts() {
                 .maybeSingle();
 
             if (userError || !userData || !userData.tenant_id) {
-                throw new Error('El usuario actual no está asociado a ninguna empresa en la tabla public.users.');
+                throw new Error('El usuario actual no esta asociado a ninguna empresa en la tabla public.users.');
             }
 
             query = query.eq('tenant_id', userData.tenant_id);
@@ -334,29 +313,6 @@ async function loadProducts() {
     }
 }
 
-// --- ESTADÍSTICAS MINUCIOSAS DE LA EMPRESA ACTUAL ---
-async function loadTenantStats() {
-    try {
-        let prodCount = state.products.length;
-        let totalStock = 0;
-        let totalValue = 0;
-
-        state.products.forEach(prod => {
-            const stock = parseFloat(prod.stock) || 0;
-            const price = parseFloat(prod.sale_price) || 0;
-            totalStock += stock;
-            totalValue += (stock * price);
-        });
-
-        document.getElementById('tenant-prod-count').textContent = prodCount;
-        document.getElementById('tenant-total-stock').textContent = totalStock;
-        document.getElementById('tenant-inventory-value').textContent = `$${totalValue.toFixed(2)}`;
-    } catch (error) {
-        console.error('Error al calcular estadísticas de la empresa:', error);
-    }
-}
-
-// --- FUNCIONES DE ADMINISTRACIÓN ---
 async function handleCreateCompany(e) {
     e.preventDefault();
     const nameInput = document.getElementById('company-name');
@@ -370,7 +326,7 @@ async function handleCreateCompany(e) {
 
         if (error) throw error;
 
-        alert(`¡Empresa "${companyName}" creada con éxito!`);
+        alert(`Empresa "${companyName}" creada con exito!`);
         nameInput.value = '';
         cargarEmpresasEnSelect();
     } catch (error) {
@@ -384,11 +340,7 @@ async function cargarEmpresasEnSelect() {
 
     try {
         select.innerHTML = `<option value="">Cargando empresas...</option>`;
-        
-        const { data, error } = await supabaseClient
-            .from('tenants')
-            .select('id, name');
-            
+        const { data, error } = await supabaseClient.from('tenants').select('id, name');
         if (error) throw error;
 
         if (!data || data.length === 0) {
@@ -410,11 +362,7 @@ async function cargarRolesEnSelect() {
 
     try {
         select.innerHTML = `<option value="">Cargando roles...</option>`;
-        
-        const { data, error } = await supabaseClient
-            .from('roles')
-            .select('id, name');
-            
+        const { data, error } = await supabaseClient.from('roles').select('id, name');
         if (error) throw error;
 
         if (!data || data.length === 0) {
@@ -441,7 +389,7 @@ async function handleCreateUser(e) {
     const password = document.getElementById('new-user-password').value.trim();
 
     if (!companyId) {
-        alert('Por favor selecciona una empresa válida de la lista.');
+        alert('Por favor selecciona una empresa valida de la lista.');
         return;
     }
 
@@ -474,7 +422,7 @@ async function handleCreateUser(e) {
 
         if (profileError) throw profileError;
 
-        alert(`¡Usuario ${email} registrado y vinculado a la empresa con éxito!`);
+        alert(`Usuario ${email} registrado y vinculado a la empresa con exito!`);
         document.getElementById('create-user-form').reset();
         loadAdminUsersList();
     } catch (error) {
@@ -488,7 +436,6 @@ async function loadGlobalStatsAndAudit() {
         const { count: tenantCount, error: tenantError } = await supabaseClient
             .from('tenants')
             .select('*', { count: 'exact', head: true });
-        
         if (!tenantError) {
             document.getElementById('stat-tenants').textContent = tenantCount ?? 0;
         }
@@ -496,7 +443,6 @@ async function loadGlobalStatsAndAudit() {
         const { count: userCount, error: userError } = await supabaseClient
             .from('users')
             .select('*', { count: 'exact', head: true });
-        
         if (!userError) {
             document.getElementById('stat-users').textContent = userCount ?? 0;
         }
@@ -504,7 +450,6 @@ async function loadGlobalStatsAndAudit() {
         const { count: prodCount, error: prodError } = await supabaseClient
             .from('products')
             .select('*', { count: 'exact', head: true });
-        
         if (!prodError) {
             document.getElementById('stat-products').textContent = prodCount ?? 0;
         }
@@ -519,7 +464,7 @@ async function loadGlobalStatsAndAudit() {
         if (!auditTableBody) return;
 
         if (auditError || !auditData || auditData.length === 0) {
-            auditTableBody.innerHTML = `<tr><td colspan="3" class="text-center">No hay registros de auditoría recientes.</td></tr>`;
+            auditTableBody.innerHTML = `<tr><td colspan="3" class="text-center">No hay registros de auditoria recientes.</td></tr>`;
             return;
         }
 
@@ -535,17 +480,16 @@ async function loadGlobalStatsAndAudit() {
         }).join('');
 
     } catch (error) {
-        console.error('Error al cargar estadísticas y auditoría:', error);
+        console.error('Error al cargar estadisticas y auditoria:', error);
     }
 }
 
-// --- MÓDULO DE INGRESO PRO ---
 async function handleSearchMasterProduct() {
     const codeInput = document.getElementById('ingress-code');
     const code = codeInput.value.trim();
 
     if (!code) {
-        alert('Por favor introduce un código para buscar.');
+        alert('Por favor introduce un codigo para buscar.');
         return;
     }
 
@@ -564,9 +508,9 @@ async function handleSearchMasterProduct() {
             document.getElementById('factor-box').value = data.box_factor || 1;
             document.getElementById('factor-pack').value = data.pack_factor || 1;
             document.getElementById('factor-bale').value = data.bale_factor || 1;
-            alert('¡Producto encontrado en el Catálogo Maestro!');
+            alert('Producto encontrado en el Catalogo Maestro!');
         } else {
-            alert('El producto no existe en el índice global. Puedes registrarlo llenando los datos y se creará automáticamente.');
+            alert('El producto no existe en el indice global. Puedes registrarlo llenando los datos y se creara automaticamente.');
         }
     } catch (error) {
         console.error('Error al buscar producto maestro:', error);
@@ -657,16 +601,15 @@ async function handleIngressMercancia(e) {
 
         if (updateStockError) throw updateStockError;
 
-        alert(`¡Ingreso exitoso! Se sumaron ${totalUnitsToAdd} unidades al inventario (Equivalente a ${qtyEntered} ${packagingUnit}(s)).`);
+        alert(`Ingreso exitoso! Se sumaron ${totalUnitsToAdd} unidades al inventario (Equivalente a ${qtyEntered} ${packagingUnit}(s)).`);
         document.getElementById('ingress-form').reset();
         loadProducts(); 
     } catch (error) {
-        console.error('Error en el ingreso de mercancía:', error);
+        console.error('Error en el ingreso de mercancia:', error);
         alert('Error al procesar el ingreso: ' + error.message);
     }
 }
 
-// --- RENDERIZAR PRODUCTOS Y UTILIDADES ---
 function renderProducts(productsToRender) {
     const container = document.getElementById('product-list');
     if (!container) return;
@@ -679,7 +622,7 @@ function renderProducts(productsToRender) {
     container.innerHTML = productsToRender.map(prod => `
         <div class="product-card">
             <h3>${prod.name || 'Sin nombre'}</h3>
-            <p><strong>Código:</strong> ${prod.code || prod.manual_code || prod.barcode || 'N/A'}</p>
+            <p><strong>Codigo:</strong> ${prod.code || prod.manual_code || prod.barcode || 'N/A'}</p>
             <p><strong>Stock:</strong> ${prod.stock ?? 0}</p>
             <p><strong>Precio:</strong> $${prod.sale_price ?? 0.00}</p>
         </div>
@@ -707,26 +650,21 @@ function hideAlert() {
     alertDiv.classList.add('hidden');
 }
 
-// --- CARGAR LISTA DE USUARIOS PARA ADMINISTRACIÓN ---
 async function loadAdminUsersList() {
     const tbody = document.getElementById('admin-users-list-body');
     if (!tbody) return;
-
     tbody.innerHTML = `<tr><td colspan="4" class="text-center">Cargando usuarios registrados...</td></tr>`;
-
+    
     try {
         const { data, error } = await supabaseClient
             .from('users')
             .select('id, username, tenant_id, role_id, tenants(name)')
             .order('username', { ascending: true });
-
         if (error) throw error;
-
         if (!data || data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="4" class="text-center">No hay usuarios registrados.</td></tr>`;
             return;
         }
-
         tbody.innerHTML = data.map(u => {
             const empresaNombre = u.tenants ? u.tenants.name : 'Sin Empresa';
             return `
@@ -735,28 +673,24 @@ async function loadAdminUsersList() {
                     <td>${empresaNombre}</td>
                     <td><code>Rol: ${u.role_id ? u.role_id.substring(0, 8) + '...' : 'N/A'}</code></td>
                     <td style="text-align: center; display: flex; gap: 6px; justify-content: center;">
-                        <button type="button" class="btn-secondary" style="padding: 3px 8px; font-size: 0.75rem;" onclick="openEditUserModal('${u.id}', '${u.username}', '${u.tenant_id}')">✏️ Editar</button>
-                        <button type="button" class="btn-secondary" style="padding: 3px 8px; font-size: 0.75rem; background: #fee2e2; color: #991b1b;" onclick="handleDeleteUser('${u.id}', '${u.username}')">🗑️ Eliminar</button>
+                        <button type="button" class="btn-secondary" style="padding: 3px 8px; font-size: 0.75rem;" onclick="openEditUserModal('${u.id}', '${u.username}', '${u.tenant_id}')">Editar</button>
+                        <button type="button" class="btn-secondary" style="padding: 3px 8px; font-size: 0.75rem; background: #fee2e2; color: #991b1b;" onclick="handleDeleteUser('${u.id}', '${u.username}')">Eliminar</button>
                     </td>
                 </tr>
             `;
         }).join('');
-
     } catch (err) {
         console.error('Error al listar usuarios:', err);
         tbody.innerHTML = `<tr><td colspan="4" class="text-center">Error al cargar la lista de usuarios.</td></tr>`;
     }
 }
 
-// --- ABRIR MODAL DE EDICIÓN ---
 async function openEditUserModal(userId, username, tenantId) {
     const modal = document.getElementById('edit-user-modal');
     if (!modal) return;
-
     document.getElementById('edit-user-id').value = userId;
     document.getElementById('edit-user-email').value = username;
     document.getElementById('edit-user-password').value = '';
-
     const selectCompany = document.getElementById('edit-user-company');
     try {
         const { data: tenants } = await supabaseClient.from('tenants').select('id, name');
@@ -768,18 +702,15 @@ async function openEditUserModal(userId, username, tenantId) {
     } catch (e) {
         console.error('Error al cargar empresas para editar:', e);
     }
-
     modal.classList.remove('hidden');
 }
 
-// --- GUARDAR CAMBIOS DE EDICIÓN ---
 async function handleUpdateUser(e) {
     e.preventDefault();
     const userId = document.getElementById('edit-user-id').value;
     const newEmail = document.getElementById('edit-user-email').value.trim();
     const newPassword = document.getElementById('edit-user-password').value.trim();
     const newTenantId = document.getElementById('edit-user-company').value;
-
     try {
         const updateData = {
             username: newEmail,
@@ -788,15 +719,12 @@ async function handleUpdateUser(e) {
         if (newPassword) {
             updateData.password = newPassword;
         }
-
         const { error: updateError } = await supabaseClient
             .from('users')
             .update(updateData)
             .eq('id', userId);
-
         if (updateError) throw updateError;
-
-        alert('¡Usuario actualizado con éxito!');
+        alert('Usuario actualizado con exito!');
         document.getElementById('edit-user-modal').classList.add('hidden');
         loadAdminUsersList();
     } catch (err) {
@@ -805,374 +733,20 @@ async function handleUpdateUser(e) {
     }
 }
 
-// --- ELIMINAR USUARIO ---
 async function handleDeleteUser(userId, username) {
-    if (!confirm(`¿Estás completamente seguro de eliminar al usuario "${username}"? Esta acción no se puede deshacer.`)) {
+    if (!confirm(`Esta completamente seguro de eliminar al usuario "${username}"? Esta accion no se puede deshacer.`)) {
         return;
     }
-
     try {
         const { error } = await supabaseClient
             .from('users')
             .delete()
             .eq('id', userId);
-
         if (error) throw error;
-
         alert(`Usuario ${username} eliminado correctamente.`);
         loadAdminUsersList();
     } catch (err) {
         console.error('Error al eliminar usuario:', err);
         alert('No se pudo eliminar el usuario: ' + err.message);
     }
-}
-
-// --- MÓDULO DE CONTROL Y ESTADÍSTICAS DEL DEPOSITARIO ---
-document.addEventListener('DOMContentLoaded', () => {
-    const tenantSearchInput = document.getElementById('tenant-search-input');
-    if (tenantSearchInput) {
-        tenantSearchInput.addEventListener('input', (e) => {
-            renderTenantDetailedInventory(e.target.value.toLowerCase().trim());
-        });
-    }
-
-    const exportTenantPdfBtn = document.getElementById('export-tenant-pdf-btn');
-    if (exportTenantPdfBtn) {
-        exportTenantPdfBtn.addEventListener('click', exportTenantStatsToPDF);
-    }
-});
-
-async function loadTenantStats() {
-    renderTenantDetailedInventory('');
-}
-
-async function renderTenantDetailedInventory(searchTerm = '') {
-    const tbody = document.getElementById('tenant-detailed-stats-body');
-    if (!tbody) return;
-
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center">Consultando stock y movimientos del depósito...</td></tr>`;
-
-    try {
-        let queryProducts = supabaseClient.from('products').select('*');
-        if (state.user && state.user.email !== 'altuna.g1@gmail.com') {
-            const { data: userData } = await supabaseClient
-                .from('users')
-                .select('tenant_id')
-                .eq('username', state.user.email)
-                .maybeSingle();
-            
-            if (userData && userData.tenant_id) {
-                queryProducts = queryProducts.eq('tenant_id', userData.tenant_id);
-            }
-        }
-
-        const { data: productsData, error: prodError } = await queryProducts;
-        if (prodError) throw prodError;
-
-        let queryAudit = supabaseClient.from('audit_logs').select('*');
-        const { data: auditData } = await queryAudit;
-
-        let totalStockUnits = 0;
-        let totalExpired = 0;
-        let totalPendingChanges = 0;
-
-        let processed = (productsData || []).map(prod => {
-            const stockTotal = parseFloat(prod.stock) || 0;
-            totalStockUnits += stockTotal;
-
-            const baleFactor = parseFloat(prod.bale_factor) || 1;
-            const pacas = baleFactor > 1 ? Math.floor(stockTotal / baleFactor) : 0;
-            const unidadesSueltas = baleFactor > 1 ? stockTotal % baleFactor : stockTotal;
-            
-            let desgloseText = `${unidadesSueltas} unidades`;
-            if (baleFactor > 1) {
-                desgloseText = `<strong>${pacas}</strong> pacas y <strong>${unidadesSueltas}</strong> un.`;
-            }
-
-            let vencidosCount = 0;
-            let esperaCambioCount = 0;
-
-            if (auditData) {
-                auditData.forEach(log => {
-                    const matches = log.details && (log.details.includes(prod.code) || log.details.includes(prod.name));
-                    if (matches) {
-                        if (log.action && log.action.toLowerCase().includes('dañado')) vencidosCount += 1;
-                        if (log.action && log.action.toLowerCase().includes('cambio')) esperaCambioCount += 1;
-                    }
-                });
-            }
-
-            totalExpired += vencidosCount;
-            totalPendingChanges += esperaCambioCount;
-
-            return {
-                ...prod,
-                stockTotal,
-                desgloseText,
-                vencidosCount,
-                esperaCambioCount
-            };
-        });
-
-        document.getElementById('tenant-prod-count').textContent = processed.length;
-        document.getElementById('tenant-total-stock').textContent = totalStockUnits;
-        document.getElementById('tenant-expired-count').textContent = totalExpired;
-        document.getElementById('tenant-pending-changes').textContent = totalPendingChanges;
-
-        if (searchTerm) {
-            processed = processed.filter(p => 
-                (p.name && p.name.toLowerCase().includes(searchTerm)) || 
-                (p.code && p.code.toLowerCase().includes(searchTerm))
-            );
-        }
-
-        if (processed.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center">No se encontraron productos en este depósito.</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = processed.map(item => {
-            return `
-                <tr>
-                    <td><code>${item.code || 'N/A'}</code></td>
-                    <td><strong>${item.name}</strong></td>
-                    <td>${item.desgloseText}</td>
-                    <td><span style="color: #dc2626; font-weight: bold;">${item.vencidosCount} un.</span></td>
-                    <td><span style="color: #d97706; font-weight: bold;">${item.esperaCambioCount} un.</span></td>
-                    <td><span class="badge" style="background: #e2e8f0; color: #334155;">Activo en Almacén</span></td>
-                </tr>
-            `;
-        }).join('');
-
-    } catch (err) {
-        console.error('Error al cargar estadísticas detalladas del depósito:', err);
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center">Error al procesar los datos del depósito.</td></tr>`;
-    }
-}
-
-function exportTenantStatsToPDF() {
-    if (typeof window.jspdf === 'undefined') {
-        alert('Librería PDF no cargada.');
-        return;
-    }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("Informe de Control y Stock por Depósito", 14, 20);
-
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Fecha de emisión: ${new Date().toLocaleString()}`, 14, 26);
-
-    let yPos = 35;
-    const rows = document.querySelectorAll('#tenant-detailed-stats-body tr');
-    
-    doc.setFontSize(8);
-    doc.setFillColor(240, 240, 240);
-    doc.rect(14, yPos, 180, 8, 'F');
-    doc.text("Código", 16, yPos + 5);
-    doc.text("Producto", 45, yPos + 5);
-    doc.text("Stock Desglosado", 115, yPos + 5);
-    doc.text("Vencidos", 155, yPos + 5);
-    doc.text("Cambios", 178, yPos + 5);
-
-    yPos += 8;
-    rows.forEach((row, idx) => {
-        if (idx > 25) return;
-        const cols = row.querySelectorAll('td');
-        if (cols.length >= 5) {
-            yPos += 6;
-            doc.text(cols[0].textContent.substring(0, 15), 16, yPos);
-            doc.text(cols[1].textContent.substring(0, 32), 45, yPos);
-            doc.text(cols[2].textContent.replace(/<[^>]*>?/gm, '').substring(0, 25), 115, yPos);
-            doc.text(cols[3].textContent, 155, yPos);
-            doc.text(cols[4].textContent, 178, yPos);
-        }
-    });
-
-    doc.save(`Informe_Deposito_${Date.now()}.pdf`);
-}
-
-// --- MÓDULO DE CONTROL Y ESTADÍSTICAS DEL DEPOSITARIO (COMPLETO Y BLINDADO) ---
-
-document.addEventListener('DOMContentLoaded', () => {
-    const tenantSearchInput = document.getElementById('tenant-search-input');
-    if (tenantSearchInput) {
-        tenantSearchInput.addEventListener('input', (e) => {
-            renderTenantDetailedInventory(e.target.value.toLowerCase().trim());
-        });
-    }
-
-    const exportTenantPdfBtn = document.getElementById('export-tenant-pdf-btn');
-    if (exportTenantPdfBtn) {
-        exportTenantPdfBtn.addEventListener('click', exportTenantStatsToPDF);
-    }
-});
-
-// Esta función es llamada automáticamente por el sistema de pestañas en app.js cuando entras a 'tab-tenant-stats'
-async function loadTenantStats() {
-    await renderTenantDetailedInventory('');
-}
-
-async function renderTenantDetailedInventory(searchTerm = '') {
-    const tbody = document.getElementById('tenant-detailed-stats-body');
-    if (!tbody) return;
-
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center">Consultando stock y movimientos del depósito...</td></tr>`;
-
-    try {
-        // 1. Obtener productos de la empresa actual del depositario
-        let queryProducts = supabaseClient.from('products').select('*');
-        if (state.user && state.user.email !== 'altuna.g1@gmail.com') {
-            const { data: userData } = await supabaseClient
-                .from('users')
-                .select('tenant_id')
-                .eq('username', state.user.email)
-                .maybeSingle();
-            
-            if (userData && userData.tenant_id) {
-                queryProducts = queryProducts.eq('tenant_id', userData.tenant_id);
-            }
-        }
-
-        const { data: productsData, error: prodError } = await queryProducts;
-        if (prodError) throw prodError;
-
-        // 2. Obtener auditoría para calcular vencidos (merma) y cambios
-        let queryAudit = supabaseClient.from('audit_logs').select('*');
-        const { data: auditData } = await queryAudit;
-
-        let totalStockUnits = 0;
-        let totalExpired = 0;
-        let totalPendingChanges = 0;
-
-        let processed = (productsData || []).map(prod => {
-            const stockTotal = parseFloat(prod.stock) || 0;
-            totalStockUnits += stockTotal;
-
-            // Desglose por presentaciones usando los factores definidos
-            const baleFactor = parseFloat(prod.bale_factor) || 1;
-            const pacas = baleFactor > 1 ? Math.floor(stockTotal / baleFactor) : 0;
-            const unidadesSueltas = baleFactor > 1 ? stockTotal % baleFactor : stockTotal;
-            
-            let desgloseText = `${unidadesSueltas} unidades`;
-            if (baleFactor > 1) {
-                desgloseText = `<strong>${pacas}</strong> pacas y <strong>${unidadesSueltas}</strong> un.`;
-            }
-
-            // Conteo de incidencias cruzadas con audit_logs
-            let vencidosCount = 0;
-            let esperaCambioCount = 0;
-
-            if (auditData) {
-                auditData.forEach(log => {
-                    const matches = log.details && (log.details.includes(prod.code) || log.details.includes(prod.name));
-                    if (matches) {
-                        if (log.action && log.action.toLowerCase().includes('dañado')) vencidosCount += 1;
-                        if (log.action && log.action.toLowerCase().includes('cambio')) esperaCambioCount += 1;
-                    }
-                });
-            }
-
-            totalExpired += vencidosCount;
-            totalPendingChanges += esperaCambioCount;
-
-            return {
-                ...prod,
-                stockTotal,
-                desgloseText,
-                vencidosCount,
-                esperaCambioCount
-            };
-        });
-
-        // Actualizar tarjetas de resumen superior
-        const countEl = document.getElementById('tenant-prod-count');
-        const stockEl = document.getElementById('tenant-total-stock');
-        const expiredEl = document.getElementById('tenant-expired-count');
-        const changesEl = document.getElementById('tenant-pending-changes');
-
-        if (countEl) countEl.textContent = processed.length;
-        if (stockEl) stockEl.textContent = totalStockUnits;
-        if (expiredEl) expiredEl.textContent = totalExpired;
-        if (changesEl) changesEl.textContent = totalPendingChanges;
-
-        // Filtrar dinámicamente si el usuario escribe en el buscador del depósito
-        if (searchTerm) {
-            processed = processed.filter(p => 
-                (p.name && p.name.toLowerCase().includes(searchTerm)) || 
-                (p.code && p.code.toLowerCase().includes(searchTerm))
-            );
-        }
-
-        if (processed.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center">No se encontraron productos en este depósito.</td></tr>`;
-            return;
-        }
-
-        // Renderizar filas en la tabla
-        tbody.innerHTML = processed.map(item => {
-            return `
-                <tr>
-                    <td><code>${item.code || 'N/A'}</code></td>
-                    <td><strong>${item.name}</strong></td>
-                    <td>${item.desgloseText}</td>
-                    <td><span style="color: #dc2626; font-weight: bold;">${item.vencidosCount} un.</span></td>
-                    <td><span style="color: #d97706; font-weight: bold;">${item.esperaCambioCount} un.</span></td>
-                    <td><span class="badge" style="background: #e2e8f0; color: #334155;">Activo en Almacén</span></td>
-                </tr>
-            `;
-        }).join('');
-
-    } catch (err) {
-        console.error('Error al cargar estadísticas detalladas del depósito:', err);
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center">Error al procesar los datos del depósito.</td></tr>`;
-    }
-}
-
-function exportTenantStatsToPDF() {
-    if (typeof window.jspdf === 'undefined') {
-        alert('Librería PDF no cargada.');
-        return;
-    }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("Informe de Control y Stock por Depósito", 14, 20);
-
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Fecha de emisión: ${new Date().toLocaleString()}`, 14, 26);
-
-    let yPos = 35;
-    const rows = document.querySelectorAll('#tenant-detailed-stats-body tr');
-    
-    doc.setFontSize(8);
-    doc.setFillColor(240, 240, 240);
-    doc.rect(14, yPos, 180, 8, 'F');
-    doc.text("Código", 16, yPos + 5);
-    doc.text("Producto", 45, yPos + 5);
-    doc.text("Stock Desglosado", 115, yPos + 5);
-    doc.text("Vencidos", 155, yPos + 5);
-    doc.text("Cambios", 178, yPos + 5);
-
-    yPos += 8;
-    rows.forEach((row, idx) => {
-        if (idx > 25) return;
-        const cols = row.querySelectorAll('td');
-        if (cols.length >= 5) {
-            yPos += 6;
-            doc.text(cols[0].textContent.substring(0, 15), 16, yPos);
-            doc.text(cols[1].textContent.substring(0, 32), 45, yPos);
-            doc.text(cols[2].textContent.replace(/<[^>]*>?/gm, '').substring(0, 25), 115, yPos);
-            doc.text(cols[3].textContent, 155, yPos);
-            doc.text(cols[4].textContent, 178, yPos);
-        }
-    });
-
-    doc.save(`Informe_Deposito_${Date.now()}.pdf`);
 }
