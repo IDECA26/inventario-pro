@@ -26,7 +26,6 @@ async function renderTenantDetailedInventory(searchTerm = '') {
     
     try {
         let queryProducts = supabaseClient.from('products').select('*');
-        
         if (state.user && state.user.email !== 'altuna.g1@gmail.com') {
             const { data: userData } = await supabaseClient
                 .from('users')
@@ -124,7 +123,7 @@ async function renderTenantDetailedInventory(searchTerm = '') {
         
     } catch (err) {
         console.error('Error al cargar estadisticas detalladas del deposito:', err);
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center">Error al procesar los datos del deposito.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center">Error al procesar los datos del deposito. Verifique permisos RLS en Supabase.</td></tr>`;
     }
 }
 

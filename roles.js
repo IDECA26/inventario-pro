@@ -1,81 +1,72 @@
-// --- MÓDULO MODULAR DE CONTROL DE ROLES Y PERMISOS ---
+// RUTA: inventario-pro/roles.js
 
-document.addEventListener('DOMContentLoaded', () => {
-    window.addEventListener('userLoggedIn', (e) => {
-        applyUserRolePermissions(e.detail.user);
-    });
-});
-
-async function applyUserRolePermissions(user) {
+// Escuchar el evento personalizado de inicio de sesion para aplicar permisos dinamicamente
+window.addEventListener('userLoggedIn', async (event) => {
+    const user = event.detail.user;
     if (!user) return;
 
-    // Seleccionamos los botones de las pestañas según su atributo data-target
-    const tabIngress = document.querySelector('[data-target="tab-ingress"]');
-    const tabEgress = document.querySelector('[data-target="tab-egress"]');
-    const tabStats = document.querySelector('[data-target="tab-tenant-stats"]');
-    const tabAdminUsers = document.querySelector('[data-target="tab-admin-users"]');
-    const tabGlobalAudit = document.querySelector('[data-target="tab-global-audit"]');
-    const tabAdvancedStats = document.querySelector('[data-target="tab-advanced-stats"]');
-
-    const allRestrictedTabs = [tabIngress, tabEgress, tabStats, tabAdminUsers, tabGlobalAudit, tabAdvancedStats];
-
-    // Por defecto, ocultamos todas las pestañas restringidas de forma directa
-    allRestrictedTabs.forEach(tab => {
-        if (tab) tab.style.display = 'none';
+    const isSuperAdmin = user.email === 'altuna.g1@gmail.com';
+    
+    // 1. Ocultar todas las pestanas de menu restringidas por defecto
+    const menuTabs = document.querySelectorAll('.menu-tab');
+    menuTabs.forEach(tab => {
+        tab.style.display = 'none';
     });
 
-    // 1. Si es el SuperAdmin global por excelencia (`altuna.g1@gmail.com`) -> Mostrar todo
-    if (user.email === 'altuna.g1@gmail.com') {
-        allRestrictedTabs.forEach(tab => {
-            if (tab) tab.style.display = 'block';
-        });
+    // 2. Si es SuperAdmin, mostrar todo y salir de la funcion
+    if (isSuperAdmin) {
         console.log('Permisos aplicados: SuperAdmin Global (Acceso Total)');
+        menuTabs.forEach(tab => {
+            tab.style.display = 'block';
+        });
         return;
     }
 
     try {
-        // 2. Consultar el rol del usuario en la base de datos
+        // 3. Consultar el rol del usuario en la base de datos con su relacion a la tabla roles
         const { data: userData, error } = await supabaseClient
             .from('users')
-            .select('role_id, roles(id, name)')
+            .select('role_id, roles(name)')
             .eq('username', user.email)
             .maybeSingle();
 
-        if (error || !userData || !userData.roles) {
-            console.warn('No se encontró el rol asociado a este usuario.');
+        if (error || !userData) {
+            console.error('Error al obtener el rol del usuario:', error);
             return;
         }
 
-        const roleId = userData.roles.id; 
-        const roleName = userData.roles.name ? userData.roles.name.toLowerCase() : '';
+        // Normalizar el nombre del rol a minusculas y sin espacios para comparacion segura
+        const roleName = userData.roles ? userData.roles.name.toLowerCase().trim() : 'ayudante';
+        console.log(`Permisos aplicados: Usuario ${roleName.charAt(0).toUpperCase() + roleName.slice(1)}`);
 
-        // 3. Encender explícitamente mediante display: block las pestañas autorizadas según el rol
-        if (roleId === 'role_ayudante' || roleName === 'ayudante') {
-            // Ayudante: Solo ve Egresos y Productos
+        // 4. Referencias a las pestanas del DOM
+        const tabEgress = document.querySelector('.menu-tab[data-target="tab-egress"]');
+        const tabTenantStats = document.querySelector('.menu-tab[data-target="tab-tenant-stats"]');
+        const tabIngress = document.querySelector('.menu-tab[data-target="tab-ingress"]');
+        const tabAdvancedStats = document.querySelector('.menu-tab[data-target="tab-advanced-stats"]');
+        const tabAdminUsers = document.querySelector('.menu-tab[data-target="tab-admin-users"]');
+        const tabGlobalAudit = document.querySelector('.menu-tab[data-target="tab-global-audit"]');
+
+        // 5. Asignacion estricta de pestanas visibles segun el rol
+        if (roleName === 'ayudante') {
+            // Ayudante: Solo puede ver Egresos/Despacho (ademas de Productos que es la pestana por defecto)
             if (tabEgress) tabEgress.style.display = 'block';
-            console.log('Permisos aplicados: Ayudante de Depósito (Operativo)');
         } 
-        else if (roleId === 'role_depositario' || roleName === 'depositario') {
-            // Depositario: Ve Ingresos y Egresos
-            if (tabIngress) tabIngress.style.display = 'block';
+        else if (roleName === 'depositario') {
+            // Depositario: Puede ver Egresos/Despacho y Estadisticas de Deposito
             if (tabEgress) tabEgress.style.display = 'block';
-            console.log('Permisos aplicados: Usuario Depositario');
+            if (tabTenantStats) tabTenantStats.style.display = 'block';
         } 
-        else if (
-            roleId === 'role_administrador' || 
-            roleId === 'role_presidente' || 
-            roleName === 'administrador' || 
-            roleName === 'presidente'
-        ) {
-            // Administradores y Presidentes locales: Ingresos, Egresos, Estadísticas y Analítica Pro
+        else if (roleName === 'administrador' || roleName === 'presidente') {
+            // Administrador/Presidente: Acceso a Ingresos, Estadisticas de Empresa, Analitica Pro, Admin y Auditoria
             if (tabIngress) tabIngress.style.display = 'block';
-            if (tabEgress) tabEgress.style.display = 'block';
-            if (tabStats) tabStats.style.display = 'block';
+            if (tabTenantStats) tabTenantStats.style.display = 'block';
             if (tabAdvancedStats) tabAdvancedStats.style.display = 'block';
-            console.log(`Permisos aplicados: Acceso Total Empresa (${roleName.toUpperCase()})`);
+            if (tabAdminUsers) tabAdminUsers.style.display = 'block';
+            if (tabGlobalAudit) tabGlobalAudit.style.display = 'block';
         }
 
     } catch (err) {
-        console.error('Error al aplicar permisos de roles:', err);
+        console.error('Error critico en la asignacion de roles:', err);
     }
-}
+});

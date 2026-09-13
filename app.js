@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 navTabsContainer.classList.remove('mobile-open');
             }
 
+            // Delegacion segura a modulos externos
             if (targetId === 'tab-tenant-stats') {
                 if (typeof loadTenantStats === 'function') {
                     loadTenantStats();
