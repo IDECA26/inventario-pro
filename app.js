@@ -55,7 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (targetId === 'tab-tenant-stats') {
-                loadTenantStats();
+                if (typeof loadTenantStats === 'function') {
+                    loadTenantStats();
+                }
             } else if (targetId === 'tab-admin-users') {
                 cargarEmpresasEnSelect();
                 cargarRolesEnSelect();
@@ -168,14 +170,13 @@ function openScanner(targetType) {
         onScanFailure
     ).catch(err => {
         console.error("Error al iniciar la camara:", err);
-        alert("No se pudo acceder a la camara. Revisa que los permisos esten habilitados en el navegador o app instalada.");
+        alert("No se pudo acceder a la camara. Revisa que los permisos esten habilitados.");
         closeScanner();
     });
 }
 
 async function onScanSuccess(decodedText, decodedResult) {
     closeScanner();
-
     if (activeScannerTarget === 'search') {
         const searchInput = document.getElementById('search-input');
         if (searchInput) {
@@ -238,9 +239,7 @@ async function handleLogin(e) {
             email: email,
             password: password
         });
-
         if (error) throw error;
-
         state.user = data.user;
         showDashboard();
     } catch (error) {
@@ -268,7 +267,6 @@ async function showDashboard() {
     document.getElementById('dashboard-screen').classList.remove('hidden');
     
     const nameDisplay = document.getElementById('user-display-name');
-
     if (state.user) {
         const isSuperAdmin = state.user.email === 'altuna.g1@gmail.com';
         if (nameDisplay) {
@@ -286,7 +284,6 @@ async function loadProducts() {
 
     try {
         let query = supabaseClient.from('products').select('*');
-
         if (state.user && state.user.email !== 'altuna.g1@gmail.com') {
             const { data: userData, error: userError } = await supabaseClient
                 .from('users')
@@ -295,9 +292,8 @@ async function loadProducts() {
                 .maybeSingle();
 
             if (userError || !userData || !userData.tenant_id) {
-                throw new Error('El usuario actual no esta asociado a ninguna empresa en la tabla public.users.');
+                throw new Error('El usuario actual no esta asociado a ninguna empresa.');
             }
-
             query = query.eq('tenant_id', userData.tenant_id);
         }
 
@@ -319,13 +315,8 @@ async function handleCreateCompany(e) {
     const companyName = nameInput.value.trim();
 
     try {
-        const { data, error } = await supabaseClient
-            .from('tenants')
-            .insert([{ name: companyName }])
-            .select();
-
+        const { data, error } = await supabaseClient.from('tenants').insert([{ name: companyName }]).select();
         if (error) throw error;
-
         alert(`Empresa "${companyName}" creada con exito!`);
         nameInput.value = '';
         cargarEmpresasEnSelect();
@@ -347,7 +338,6 @@ async function cargarEmpresasEnSelect() {
             select.innerHTML = `<option value="">No hay empresas registradas</option>`;
             return;
         }
-
         select.innerHTML = `<option value="">Seleccione una empresa...</option>` + 
             data.map(comp => `<option value="${comp.id}">${comp.name}</option>`).join('');
     } catch (error) {
@@ -369,12 +359,11 @@ async function cargarRolesEnSelect() {
             select.innerHTML = `<option value="">No hay roles disponibles</option>`;
             return;
         }
-
         select.innerHTML = `<option value="">Seleccione un rol...</option>` + 
             data.map(rol => `<option value="${rol.id}">${rol.name.toUpperCase()}</option>`).join('');
     } catch (error) {
-        console.error('Detalle exacto del error al cargar roles:', error.message || error);
-        select.innerHTML = `<option value="">Error al cargar roles (Ver consola)</option>`;
+        console.error('Error al cargar roles:', error.message);
+        select.innerHTML = `<option value="">Error al cargar roles</option>`;
     }
 }
 
@@ -392,7 +381,6 @@ async function handleCreateUser(e) {
         alert('Por favor selecciona una empresa valida de la lista.');
         return;
     }
-
     if (!selectedRoleId) {
         alert('Por favor selecciona un rol para el usuario.');
         return;
@@ -403,23 +391,19 @@ async function handleCreateUser(e) {
             email: email,
             password: password
         });
-
         if (authError) throw authError;
 
         const userId = authData.user ? authData.user.id : null;
         if (!userId) throw new Error('No se pudo obtener el ID del usuario autenticado.');
 
-        const { error: profileError } = await supabaseClient
-            .from('users')
-            .insert([{
-                id: userId,
-                tenant_id: companyId,
-                role_id: selectedRoleId,
-                username: email,
-                password: password,
-                full_name: email.split('@')[0]
-            }]);
-
+        const { error: profileError } = await supabaseClient.from('users').insert([{
+            id: userId,
+            tenant_id: companyId,
+            role_id: selectedRoleId,
+            username: email,
+            password: password,
+            full_name: email.split('@')[0]
+        }]);
         if (profileError) throw profileError;
 
         alert(`Usuario ${email} registrado y vinculado a la empresa con exito!`);
@@ -433,26 +417,14 @@ async function handleCreateUser(e) {
 
 async function loadGlobalStatsAndAudit() {
     try {
-        const { count: tenantCount, error: tenantError } = await supabaseClient
-            .from('tenants')
-            .select('*', { count: 'exact', head: true });
-        if (!tenantError) {
-            document.getElementById('stat-tenants').textContent = tenantCount ?? 0;
-        }
+        const { count: tenantCount, error: tenantError } = await supabaseClient.from('tenants').select('*', { count: 'exact', head: true });
+        if (!tenantError) document.getElementById('stat-tenants').textContent = tenantCount ?? 0;
 
-        const { count: userCount, error: userError } = await supabaseClient
-            .from('users')
-            .select('*', { count: 'exact', head: true });
-        if (!userError) {
-            document.getElementById('stat-users').textContent = userCount ?? 0;
-        }
+        const { count: userCount, error: userError } = await supabaseClient.from('users').select('*', { count: 'exact', head: true });
+        if (!userError) document.getElementById('stat-users').textContent = userCount ?? 0;
 
-        const { count: prodCount, error: prodError } = await supabaseClient
-            .from('products')
-            .select('*', { count: 'exact', head: true });
-        if (!prodError) {
-            document.getElementById('stat-products').textContent = prodCount ?? 0;
-        }
+        const { count: prodCount, error: prodError } = await supabaseClient.from('products').select('*', { count: 'exact', head: true });
+        if (!prodError) document.getElementById('stat-products').textContent = prodCount ?? 0;
 
         const { data: auditData, error: auditError } = await supabaseClient
             .from('audit_logs')
@@ -470,15 +442,8 @@ async function loadGlobalStatsAndAudit() {
 
         auditTableBody.innerHTML = auditData.map(log => {
             const fechaFormateada = log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A';
-            return `
-                <tr>
-                    <td>${fechaFormateada}</td>
-                    <td><span class="badge">${log.action || 'ACCION'}</span></td>
-                    <td>${log.entity_type || 'General'}</td>
-                </tr>
-            `;
+            return `<tr><td>${fechaFormateada}</td><td><span class="badge">${log.action || 'ACCION'}</span></td><td>${log.entity_type || 'General'}</td></tr>`;
         }).join('');
-
     } catch (error) {
         console.error('Error al cargar estadisticas y auditoria:', error);
     }
@@ -487,19 +452,13 @@ async function loadGlobalStatsAndAudit() {
 async function handleSearchMasterProduct() {
     const codeInput = document.getElementById('ingress-code');
     const code = codeInput.value.trim();
-
     if (!code) {
         alert('Por favor introduce un codigo para buscar.');
         return;
     }
 
     try {
-        const { data, error } = await supabaseClient
-            .from('products')
-            .select('*')
-            .or(`code.eq.${code},barcode.eq.${code}`)
-            .maybeSingle();
-
+        const { data, error } = await supabaseClient.from('products').select('*').or(`code.eq.${code},barcode.eq.${code}`).maybeSingle();
         if (error) throw error;
 
         if (data) {
@@ -510,7 +469,7 @@ async function handleSearchMasterProduct() {
             document.getElementById('factor-bale').value = data.bale_factor || 1;
             alert('Producto encontrado en el Catalogo Maestro!');
         } else {
-            alert('El producto no existe en el indice global. Puedes registrarlo llenando los datos y se creara automaticamente.');
+            alert('El producto no existe en el indice global. Puedes registrarlo llenando los datos.');
         }
     } catch (error) {
         console.error('Error al buscar producto maestro:', error);
@@ -519,7 +478,6 @@ async function handleSearchMasterProduct() {
 
 async function handleIngressMercancia(e) {
     e.preventDefault();
-
     const code = document.getElementById('ingress-code').value.trim();
     const name = document.getElementById('ingress-name').value.trim();
     const price = parseFloat(document.getElementById('ingress-price').value) || 0;
@@ -527,7 +485,6 @@ async function handleIngressMercancia(e) {
     const boxFactor = parseFloat(document.getElementById('factor-box').value) || 1;
     const packFactor = parseFloat(document.getElementById('factor-pack').value) || 1;
     const baleFactor = parseFloat(document.getElementById('factor-bale').value) || 1;
-
     const packagingUnit = document.getElementById('packaging-unit').value;
     const qtyEntered = parseFloat(document.getElementById('ingress-quantity').value) || 0;
 
@@ -539,69 +496,38 @@ async function handleIngressMercancia(e) {
     try {
         let tenantId = null;
         if (state.user.email !== 'altuna.g1@gmail.com') {
-            const { data: userData, error: userLookupError } = await supabaseClient
-                .from('users')
-                .select('tenant_id')
-                .eq('username', state.user.email)
-                .maybeSingle();
-
-            if (userLookupError || !userData || !userData.tenant_id) {
-                throw new Error('Tu usuario no tiene un tenant_id asociado en la base de datos.');
-            }
+            const { data: userData, error: userLookupError } = await supabaseClient.from('users').select('tenant_id').eq('username', state.user.email).maybeSingle();
+            if (userLookupError || !userData || !userData.tenant_id) throw new Error('Tu usuario no tiene un tenant_id asociado.');
             tenantId = userData.tenant_id;
         } else {
             const { data: tenants } = await supabaseClient.from('tenants').select('id').limit(1).maybeSingle();
             if (tenants) tenantId = tenants.id;
         }
 
-        if (!tenantId) throw new Error('No se pudo determinar la empresa (tenant) para registrar el stock.');
+        if (!tenantId) throw new Error('No se pudo determinar la empresa para registrar el stock.');
 
-        let { data: existingProd } = await supabaseClient
-            .from('products')
-            .select('*')
-            .or(`code.eq.${code},barcode.eq.${code}`)
-            .maybeSingle();
-
+        let { data: existingProd } = await supabaseClient.from('products').select('*').or(`code.eq.${code},barcode.eq.${code}`).maybeSingle();
         let productId;
 
         if (existingProd) {
             productId = existingProd.id;
-            await supabaseClient.from('products').update({
-                box_factor: boxFactor,
-                pack_factor: packFactor,
-                bale_factor: baleFactor,
-                sale_price: price
-            }).eq('id', productId);
+            await supabaseClient.from('products').update({ box_factor: boxFactor, pack_factor: packFactor, bale_factor: baleFactor, sale_price: price }).eq('id', productId);
         } else {
             productId = crypto.randomUUID();
-            const { error: insertProdError } = await supabaseClient
-                .from('products')
-                .insert([{
-                    id: productId,
-                    tenant_id: tenantId,
-                    code: code,
-                    barcode: code,
-                    name: name,
-                    sale_price: price,
-                    box_factor: boxFactor,
-                    pack_factor: packFactor,
-                    bale_factor: baleFactor,
-                    stock: 0 
-                }]);
+            const { error: insertProdError } = await supabaseClient.from('products').insert([{
+                id: productId, tenant_id: tenantId, code: code, barcode: code, name: name, sale_price: price,
+                box_factor: boxFactor, pack_factor: packFactor, bale_factor: baleFactor, stock: 0 
+            }]);
             if (insertProdError) throw insertProdError;
         }
 
         const currentStock = existingProd && existingProd.stock ? parseFloat(existingProd.stock) : 0;
         const newStock = currentStock + totalUnitsToAdd;
 
-        const { error: updateStockError } = await supabaseClient
-            .from('products')
-            .update({ stock: newStock })
-            .eq('id', productId);
-
+        const { error: updateStockError } = await supabaseClient.from('products').update({ stock: newStock }).eq('id', productId);
         if (updateStockError) throw updateStockError;
 
-        alert(`Ingreso exitoso! Se sumaron ${totalUnitsToAdd} unidades al inventario (Equivalente a ${qtyEntered} ${packagingUnit}(s)).`);
+        alert(`Ingreso exitoso! Se sumaron ${totalUnitsToAdd} unidades al inventario.`);
         document.getElementById('ingress-form').reset();
         loadProducts(); 
     } catch (error) {
@@ -613,12 +539,10 @@ async function handleIngressMercancia(e) {
 function renderProducts(productsToRender) {
     const container = document.getElementById('product-list');
     if (!container) return;
-
     if (!productsToRender || productsToRender.length === 0) {
-        container.innerHTML = `<p class="no-products">No se encontraron empresas/productos para mostrar.</p>`;
+        container.innerHTML = `<p class="no-products">No se encontraron productos para mostrar.</p>`;
         return;
     }
-
     container.innerHTML = productsToRender.map(prod => `
         <div class="product-card">
             <h3>${prod.name || 'Sin nombre'}</h3>
@@ -656,10 +580,7 @@ async function loadAdminUsersList() {
     tbody.innerHTML = `<tr><td colspan="4" class="text-center">Cargando usuarios registrados...</td></tr>`;
     
     try {
-        const { data, error } = await supabaseClient
-            .from('users')
-            .select('id, username, tenant_id, role_id, tenants(name)')
-            .order('username', { ascending: true });
+        const { data, error } = await supabaseClient.from('users').select('id, username, tenant_id, role_id, tenants(name)').order('username', { ascending: true });
         if (error) throw error;
         if (!data || data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="4" class="text-center">No hay usuarios registrados.</td></tr>`;
@@ -712,18 +633,12 @@ async function handleUpdateUser(e) {
     const newPassword = document.getElementById('edit-user-password').value.trim();
     const newTenantId = document.getElementById('edit-user-company').value;
     try {
-        const updateData = {
-            username: newEmail,
-            tenant_id: newTenantId
-        };
-        if (newPassword) {
-            updateData.password = newPassword;
-        }
-        const { error: updateError } = await supabaseClient
-            .from('users')
-            .update(updateData)
-            .eq('id', userId);
+        const updateData = { username: newEmail, tenant_id: newTenantId };
+        if (newPassword) updateData.password = newPassword;
+        
+        const { error: updateError } = await supabaseClient.from('users').update(updateData).eq('id', userId);
         if (updateError) throw updateError;
+        
         alert('Usuario actualizado con exito!');
         document.getElementById('edit-user-modal').classList.add('hidden');
         loadAdminUsersList();
@@ -734,14 +649,9 @@ async function handleUpdateUser(e) {
 }
 
 async function handleDeleteUser(userId, username) {
-    if (!confirm(`Esta completamente seguro de eliminar al usuario "${username}"? Esta accion no se puede deshacer.`)) {
-        return;
-    }
+    if (!confirm(`Esta completamente seguro de eliminar al usuario "${username}"? Esta accion no se puede deshacer.`)) return;
     try {
-        const { error } = await supabaseClient
-            .from('users')
-            .delete()
-            .eq('id', userId);
+        const { error } = await supabaseClient.from('users').delete().eq('id', userId);
         if (error) throw error;
         alert(`Usuario ${username} eliminado correctamente.`);
         loadAdminUsersList();
