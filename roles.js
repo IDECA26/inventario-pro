@@ -53,7 +53,8 @@ window.addEventListener('userLoggedIn', async (event) => {
             if (tabEgress) tabEgress.style.display = 'block';
         } 
         else if (roleName === 'depositario') {
-            // Depositario: Puede ver Egresos/Despacho y Estadisticas de Deposito
+            // Depositario: Puede ver Ingresos, Egresos/Despacho y Estadisticas de Deposito
+            if (tabIngress) tabIngress.style.display = 'block';
             if (tabEgress) tabEgress.style.display = 'block';
             if (tabTenantStats) tabTenantStats.style.display = 'block';
         } 
