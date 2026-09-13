@@ -408,8 +408,8 @@ async function cargarRolesEnSelect() {
         select.innerHTML = `<option value="">Seleccione un rol...</option>` + 
             data.map(rol => `<option value="${rol.id}">${rol.name.toUpperCase()}</option>`).join('');
     } catch (error) {
-        console.error('Error al cargar roles:', error.message);
-        select.innerHTML = `<option value="">Error al cargar roles</option>`;
+        console.error('Detalle exacto del error al cargar roles:', error.message || error);
+        select.innerHTML = `<option value="">Error al cargar roles (Ver consola)</option>`;
     }
 }
 
