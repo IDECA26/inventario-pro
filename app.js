@@ -67,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (targetId === 'tab-admin-users') {
                 cargarEmpresasEnSelect();
                 cargarRolesEnSelect();
+                loadAdminUsersList();
             } else if (targetId === 'tab-global-audit') {
                 loadGlobalStatsAndAudit();
             }
@@ -147,6 +148,22 @@ document.addEventListener('DOMContentLoaded', () => {
             showDashboard();
         }
     });
+
+    // 9. CONFIGURACIÓN DEL MODAL DE EDICIÓN DE USUARIO
+    const closeEditModal = () => {
+        const modal = document.getElementById('edit-user-modal');
+        if (modal) modal.classList.add('hidden');
+    };
+
+    const closeEditBtn = document.getElementById('close-edit-modal-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    if (closeEditBtn) closeEditBtn.addEventListener('click', closeEditModal);
+    if (cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
+
+    const editForm = document.getElementById('edit-user-form');
+    if (editForm) {
+        editForm.addEventListener('submit', handleUpdateUser);
+    }
 });
 
 // --- CONTROL DE CÁMARA EN VIVO (Streaming WebRTC) ---
@@ -459,6 +476,7 @@ async function handleCreateUser(e) {
 
         alert(`¡Usuario ${email} registrado y vinculado a la empresa con éxito!`);
         document.getElementById('create-user-form').reset();
+        loadAdminUsersList();
     } catch (error) {
         console.error("Detalle del error:", error);
         alert('Error al registrar usuario: ' + error.message);
@@ -687,4 +705,124 @@ function hideAlert() {
     const alertDiv = document.getElementById('login-alert');
     if (!alertDiv) return;
     alertDiv.classList.add('hidden');
+}
+
+// --- CARGAR LISTA DE USUARIOS PARA ADMINISTRACIÓN ---
+async function loadAdminUsersList() {
+    const tbody = document.getElementById('admin-users-list-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center">Cargando usuarios registrados...</td></tr>`;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('users')
+            .select('id, username, tenant_id, role_id, tenants(name)')
+            .order('username', { ascending: true });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center">No hay usuarios registrados.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = data.map(u => {
+            const empresaNombre = u.tenants ? u.tenants.name : 'Sin Empresa';
+            return `
+                <tr>
+                    <td><strong>${u.username}</strong></td>
+                    <td>${empresaNombre}</td>
+                    <td><code>Rol: ${u.role_id ? u.role_id.substring(0, 8) + '...' : 'N/A'}</code></td>
+                    <td style="text-align: center; display: flex; gap: 6px; justify-content: center;">
+                        <button type="button" class="btn-secondary" style="padding: 3px 8px; font-size: 0.75rem;" onclick="openEditUserModal('${u.id}', '${u.username}', '${u.tenant_id}')">✏️ Editar</button>
+                        <button type="button" class="btn-secondary" style="padding: 3px 8px; font-size: 0.75rem; background: #fee2e2; color: #991b1b;" onclick="handleDeleteUser('${u.id}', '${u.username}')">🗑️ Eliminar</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error('Error al listar usuarios:', err);
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center">Error al cargar la lista de usuarios.</td></tr>`;
+    }
+}
+
+// --- ABRIR MODAL DE EDICIÓN ---
+async function openEditUserModal(userId, username, tenantId) {
+    const modal = document.getElementById('edit-user-modal');
+    if (!modal) return;
+
+    document.getElementById('edit-user-id').value = userId;
+    document.getElementById('edit-user-email').value = username;
+    document.getElementById('edit-user-password').value = '';
+
+    const selectCompany = document.getElementById('edit-user-company');
+    try {
+        const { data: tenants } = await supabaseClient.from('tenants').select('id, name');
+        if (tenants) {
+            selectCompany.innerHTML = tenants.map(t => 
+                `<option value="${t.id}" ${t.id === tenantId ? 'selected' : ''}>${t.name}</option>`
+            ).join('');
+        }
+    } catch (e) {
+        console.error('Error al cargar empresas para editar:', e);
+    }
+
+    modal.classList.remove('hidden');
+}
+
+// --- GUARDAR CAMBIOS DE EDICIÓN ---
+async function handleUpdateUser(e) {
+    e.preventDefault();
+    const userId = document.getElementById('edit-user-id').value;
+    const newEmail = document.getElementById('edit-user-email').value.trim();
+    const newPassword = document.getElementById('edit-user-password').value.trim();
+    const newTenantId = document.getElementById('edit-user-company').value;
+
+    try {
+        const updateData = {
+            username: newEmail,
+            tenant_id: newTenantId
+        };
+        if (newPassword) {
+            updateData.password = newPassword;
+        }
+
+        const { error: updateError } = await supabaseClient
+            .from('users')
+            .update(updateData)
+            .eq('id', userId);
+
+        if (updateError) throw updateError;
+
+        alert('¡Usuario actualizado con éxito!');
+        document.getElementById('edit-user-modal').classList.add('hidden');
+        loadAdminUsersList();
+    } catch (err) {
+        console.error('Error al actualizar usuario:', err);
+        alert('Error al actualizar: ' + err.message);
+    }
+}
+
+// --- ELIMINAR USUARIO ---
+async function handleDeleteUser(userId, username) {
+    if (!confirm(`¿Estás completamente seguro de eliminar al usuario "${username}"? Esta acción no se puede deshacer.`)) {
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('users')
+            .delete()
+            .eq('id', userId);
+
+        if (error) throw error;
+
+        alert(`Usuario ${username} eliminado correctamente.`);
+        loadAdminUsersList();
+    } catch (err) {
+        console.error('Error al eliminar usuario:', err);
+        alert('No se pudo eliminar el usuario: ' + err.message);
+    }
 }
