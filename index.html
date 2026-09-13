@@ -421,6 +421,107 @@
                 </div>
             </div>
 
+            <!-- PESTAÑA (SUPERADMIN): GESTIÓN DE EMPRESAS Y USUARIOS -->
+            <div id="tab-admin-users" class="tab-content hidden">
+                <div class="admin-sections" style="grid-template-columns: 1fr; gap: 20px;">
+                    
+                    <!-- Sección 1: Crear Empresa y Usuario (Lo que ya tenías) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div class="admin-card">
+                            <h4>Registrar Nueva Empresa (Tenant)</h4>
+                            <form id="create-company-form">
+                                <div class="form-group">
+                                    <label>Nombre de la Empresa</label>
+                                    <input type="text" id="company-name" required placeholder="Ej. Distribuidora C.A.">
+                                </div>
+                                <button type="submit" class="btn-primary">Crear Empresa</button>
+                            </form>
+                        </div>
+
+                        <div class="admin-card">
+                            <h4>Registrar Usuario por Empresa</h4>
+                            <form id="create-user-form">
+                                <div class="form-group">
+                                    <label>Seleccionar Empresa</label>
+                                    <select id="company-select" required>
+                                        <option value="">Cargando empresas...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Rol del Usuario</label>
+                                    <select id="user-role-select" required>
+                                        <option value="">Cargando roles...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Correo del Usuario</label>
+                                    <input type="email" id="new-user-email" required placeholder="usuario@empresa.com">
+                                </div>
+                                <div class="form-group">
+                                    <label>Contraseña Temporal</label>
+                                    <input type="password" id="new-user-password" required placeholder="Mínimo 6 caracteres">
+                                </div>
+                                <button type="submit" class="btn-primary">Crear y Asignar Usuario</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Sección 2: NUEVA - Tabla de Gestión, Edición y Eliminación de Usuarios -->
+                    <div class="admin-card">
+                        <h4>👥 Listado y Gestión de Usuarios del Sistema</h4>
+                        <div class="table-container" style="max-height: 350px;">
+                            <table class="audit-table">
+                                <thead>
+                                    <tr>
+                                        <th>Correo / Usuario</th>
+                                        <th>Empresa Asignada</th>
+                                        <th>Rol ID</th>
+                                        <th style="text-align: center;">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-users-list-body">
+                                    <tr>
+                                        <td colspan="4" class="text-center">Cargando usuarios...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- MODAL PARA EDITAR / CAMBIAR CLAVE DE USUARIO -->
+            <div id="edit-user-modal" class="modal hidden">
+                <div class="modal-content" style="max-width: 450px;">
+                    <div class="modal-header">
+                        <h3>Editar Usuario</h3>
+                        <button type="button" id="close-edit-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <form id="edit-user-form">
+                        <input type="hidden" id="edit-user-id">
+                        <div class="form-group">
+                            <label>Correo Electrónico (Usuario)</label>
+                            <input type="email" id="edit-user-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nueva Contraseña (Opcional - dejar en blanco para no cambiar)</label>
+                            <input type="password" id="edit-user-password" placeholder="Nueva clave temporal...">
+                        </div>
+                        <div class="form-group">
+                            <label>Reasignar Empresa</label>
+                            <select id="edit-user-company" required>
+                                <!-- Cargado dinámicamente -->
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button type="submit" class="btn-primary">Guardar Cambios</button>
+                            <button type="button" id="cancel-edit-btn" class="btn-secondary">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!-- PESTAÑA (SUPERADMIN): AUDITORÍA Y ESTADÍSTICAS GLOBALES -->
             <div id="tab-global-audit" class="tab-content hidden">
                 <div class="admin-card" style="margin-bottom: 20px;">
