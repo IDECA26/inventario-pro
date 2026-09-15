@@ -7,51 +7,89 @@ let state = {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Inicializar sesion y roles originales
-    await initSessionAndRole();
-    await loadProducts();
+    // 1. Inicializar autenticacion y eventos de login originales
+    initAuthHandlers();
+    await checkActiveSession();
 
-    // 2. Configurar navegacion y pestañas originales
-    setupNavigationTabs();
-
-    // 3. Configurar buscador dinamico inteligente en Ingresos
+    // 2. Configurar buscador inteligente de ingresos
     setupIngressAutocomplete();
-    
+
     const ingressForm = document.getElementById('ingress-form');
     if (ingressForm) {
         ingressForm.addEventListener('submit', handleIngressMercancia);
     }
 });
 
-// Recuperar sesion y rol del usuario (Soporta roles.js)
-async function initSessionAndRole() {
+// ==========================================
+// AUTENTICACION Y LOGIN ORIGINAL
+// ==========================================
+function initAuthHandlers() {
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                
+                await checkActiveSession();
+            } catch (err) {
+                alert('Error al iniciar sesión: ' + err.message);
+            }
+        });
+    }
+
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            state.user = null;
+            state.role = null;
+            document.getElementById('app').style.display = 'none';
+            document.getElementById('login-container').style.display = 'flex';
+        });
+    }
+}
+
+async function checkActiveSession() {
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session && session.user) {
             state.user = { email: session.user.email };
+            
+            // Mostrar interfaz de la app y ocultar login
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            
+            const emailDisplay = document.getElementById('user-display-email');
+            if (emailDisplay) emailDisplay.textContent = session.user.email;
+
+            // Determinar rol del usuario
+            if (typeof determineUserRole === 'function') {
+                state.role = await determineUserRole(session.user.email);
+            } else {
+                state.role = 'admin';
+            }
+
+            renderNavigationMenu();
+            await loadProducts();
+            switchTab('ingress');
         } else {
-            state.user = { email: 'altuna.g1@gmail.com' }; // SuperAdmin por defecto
+            document.getElementById('login-container').style.display = 'flex';
+            document.getElementById('app').style.display = 'none';
         }
     } catch (e) {
-        state.user = { email: 'altuna.g1@gmail.com' };
+        console.error('Error al verificar sesion:', e);
+        document.getElementById('login-container').style.display = 'flex';
     }
-
-    // Determinar rol con la logica original de roles.js si esta disponible
-    try {
-        if (typeof determineUserRole === 'function') {
-            state.role = await determineUserRole(state.user.email);
-        } else {
-            state.role = 'admin';
-        }
-    } catch (err) {
-        console.error('Error al determinar rol:', err);
-        state.role = 'admin';
-    }
-
-    renderNavigationMenu();
 }
 
-// Renderizar el menu de navegacion original segun el rol
+// ==========================================
+// NAVEGACION Y PESTAÑAS ORIGINALES
+// ==========================================
 function renderNavigationMenu() {
     const navContainer = document.getElementById('main-nav');
     if (!navContainer) return;
@@ -62,15 +100,13 @@ function renderNavigationMenu() {
         <button onclick="switchTab('estadisticas')" class="nav-btn" data-tab="estadisticas">Estadísticas</button>
     `;
 
-    // Si es depositario o admin, mostrar seccion de deposito
-    if (state.role === 'depositario' || state.role === 'admin' || state.user.email === 'altuna.g1@gmail.com') {
+    if (state.role === 'depositario' || state.role === 'admin' || (state.user && state.user.email === 'altuna.g1@gmail.com')) {
         menuHTML += `<button onclick="switchTab('tenant-stats')" class="nav-btn" data-tab="tenant-stats">Depósito</button>`;
     }
 
     navContainer.innerHTML = menuHTML;
 }
 
-// Control original de cambio de pestañas
 function switchTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(section => {
         section.style.display = 'none';
@@ -90,17 +126,11 @@ function switchTab(tabName) {
         targetBtn.classList.add('active');
     }
 
-    // Llamar cargas especificas de pestañas si existen
     if (tabName === 'estadisticas' && typeof loadEstadisticas === 'function') {
         loadEstadisticas();
     } else if (tabName === 'tenant-stats' && typeof loadTenantStats === 'function') {
         loadTenantStats();
     }
-}
-
-function setupNavigationTabs() {
-    // Asegurar que la pestaña inicial visible sea ingresos
-    switchTab('ingress');
 }
 
 async function loadProducts() {
@@ -179,7 +209,7 @@ function escapeHtml(text) {
 }
 
 // ==========================================
-// MANEJO DE INGRESO CON SOPORTE OFFLINE Y CRONOLOGIA
+// INGRESO CON SOPORTE OFFLINE Y CRONOLOGIA
 // ==========================================
 async function handleIngressMercancia(e) {
     e.preventDefault();
@@ -222,7 +252,6 @@ async function handleIngressMercancia(e) {
             code, name, price, boxFactor, packFactor, baleFactor, packagingUnit, qtyEntered, totalUnitsToAdd, tenantId: tenantId || null
         };
 
-        // Si no hay internet, se guarda en la cola local cronologica
         if (!navigator.onLine) {
             guardarOperacionOffline('INGRESS_MERCANCIA', payloadData);
             document.getElementById('ingress-form').reset();
@@ -243,7 +272,7 @@ async function handleIngressMercancia(e) {
                 code, name, price, boxFactor, packFactor, baleFactor, packagingUnit, qtyEntered, totalUnitsToAdd, tenantId: null
             };
             guardarOperacionOffline('INGRESS_MERCANCIA', payloadFallback);
-            document.getElementById('ingress-form'.reset);
+            document.getElementById('ingress-form').reset();
         } else {
             alert('Error al procesar el ingreso: ' + error.message);
         }

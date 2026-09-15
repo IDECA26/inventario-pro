@@ -7,17 +7,42 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="app">
-        <!-- Navegacion superior -->
+    <!-- Pantalla de Login Original -->
+    <div id="login-container" class="auth-container">
+        <div class="auth-card">
+            <h2>Inventario Pro</h2>
+            <p>Inicie sesión para continuar</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Correo Electrónico</label>
+                    <input type="email" id="login-email" required placeholder="correo@empresa.com">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="login-password" required placeholder="********">
+                </div>
+                <button type="submit" class="btn-primary">Iniciar Sesión</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contenedor Principal de la App (Oculto hasta iniciar sesión) -->
+    <div id="app" style="display: none;">
         <header class="main-header">
-            <h1>Inventario Pro</h1>
-            <nav id="main-nav">
-                <!-- Los botones de navegacion se generan dinamicamente segun el rol -->
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 10px;">
+                <h1>Inventario Pro</h1>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span id="user-display-email" style="font-size: 0.9rem; font-weight: bold; color: #475569;"></span>
+                    <button id="logout-btn" class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">Cerrar Sesión</button>
+                </div>
+            </div>
+            <nav id="main-nav" style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <!-- Los botones del menú se generan dinámicamente según el rol -->
             </nav>
         </header>
 
         <main>
-            <!-- PESTAÑA: INGRESO DE MERCANCIA -->
+            <!-- PESTAÑA: INGRESO DE MERCANCÍA -->
             <section id="tab-ingress" class="tab-content">
                 <h2>Ingreso de Mercancía</h2>
                 <form id="ingress-form">
@@ -28,7 +53,7 @@
                             <button type="button" id="scan-ingress-btn" class="btn-secondary">Cámara</button>
                             <button type="button" id="search-master-btn" class="btn-secondary">Buscar</button>
                         </div>
-                        <!-- Contenedor flotante para sugerencias dinámicas de ingreso -->
+                        <!-- Sugerencias dinámicas flotantes -->
                         <div id="ingress-suggestions" class="autocomplete-suggestions hidden"></div>
                     </div>
 
@@ -91,7 +116,7 @@
                             <input type="file" id="camera-input-egress" accept="image/*" capture="environment" style="display: none;">
                             <button type="button" id="search-egress-prod-btn" class="btn-secondary">Buscar</button>
                         </div>
-                        <!-- Contenedor flotante para sugerencias dinámicas de egreso -->
+                        <!-- Sugerencias dinámicas flotantes de egreso -->
                         <div id="egress-suggestions" class="autocomplete-suggestions hidden"></div>
                     </div>
 
@@ -113,10 +138,62 @@
                     <button type="submit" class="btn-primary">Procesar Egreso</button>
                 </form>
             </section>
+
+            <!-- PESTAÑA: ESTADISTICAS -->
+            <section id="tab-estadisticas" class="tab-content" style="display: none;">
+                <h2>Estadísticas Generales</h2>
+                <div id="estadisticas-content">Cargando estadísticas...</div>
+            </section>
+
+            <!-- PESTAÑA: DEPOSITO (TENANT STATS) -->
+            <section id="tab-tenant-stats" class="tab-content" style="display: none;">
+                <h2>Control y Stock por Depósito</h2>
+                <div class="form-group">
+                    <input type="text" id="tenant-search-input" placeholder="Buscar en el inventario del depósito..." autocomplete="off">
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button type="button" id="export-tenant-pdf-btn" class="btn-secondary">Exportar Informe PDF</button>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div style="background: #f1f5f9; padding: 15px; border-radius: 6px;">
+                        <span style="font-size: 0.85rem; color: #64748b;">Total Productos</span>
+                        <h3 id="tenant-prod-count" style="margin: 5px 0 0 0; font-size: 1.5rem;">0</h3>
+                    </div>
+                    <div style="background: #f1f5f9; padding: 15px; border-radius: 6px;">
+                        <span style="font-size: 0.85rem; color: #64748b;">Stock Acumulado</span>
+                        <h3 id="tenant-total-stock" style="margin: 5px 0 0 0; font-size: 1.5rem;">0</h3>
+                    </div>
+                    <div style="background: #f1f5f9; padding: 15px; border-radius: 6px;">
+                        <span style="font-size: 0.85rem; color: #64748b;">Productos Vencidos</span>
+                        <h3 id="tenant-expired-count" style="margin: 5px 0 0 0; font-size: 1.5rem; color: #dc2626;">0</h3>
+                    </div>
+                    <div style="background: #f1f5f9; padding: 15px; border-radius: 6px;">
+                        <span style="font-size: 0.85rem; color: #64748b;">Esperando Cambio</span>
+                        <h3 id="tenant-pending-changes" style="margin: 5px 0 0 0; font-size: 1.5rem; color: #d97706;">0</h3>
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #cbd5e1; background: #f8fafc;">
+                                <th style="padding: 10px;">Código</th>
+                                <th style="padding: 10px;">Producto</th>
+                                <th style="padding: 10px;">Stock Desglosado</th>
+                                <th style="padding: 10px;">Vencidos</th>
+                                <th style="padding: 10px;">Cambios</th>
+                                <th style="padding: 10px;">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tenant-detailed-stats-body">
+                            <tr><td colspan="6" class="text-center">Cargando inventario del depósito...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </main>
     </div>
 
-    <!-- Scripts externos y de la aplicación -->
+    <!-- Scripts de la aplicacion -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="roles.js"></script>
     <script src="offline-sync.js"></script>
