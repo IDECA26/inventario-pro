@@ -1,6 +1,5 @@
 /* RUTA: inventario-pro/style.css */
 
-/* --- ESTILOS GENERALES Y RESET --- */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -23,11 +22,13 @@ body {
     align-items: center;
 }
 
-.screen.hidden {
+/* CORRECCION CRITICA VISUAL MOVIL */
+.screen.hidden, 
+#dashboard-screen.hidden, 
+#login-screen.hidden {
     display: none !important;
 }
 
-/* --- PANTALLA DE LOGIN --- */
 .login-card {
     background: #ffffff;
     padding: 2.5rem;
@@ -104,7 +105,6 @@ body {
     background-color: #cbd5e1;
 }
 
-/* --- BARRA SUPERIOR Y NAVEGACIÓN --- */
 .top-bar {
     background: #ffffff;
     display: flex;
@@ -171,7 +171,6 @@ body {
     width: 100%;
 }
 
-/* --- ESTILOS DE AUTOCOMPLETADO DINÁMICO FLOTANTE --- */
 .autocomplete-suggestions {
     position: absolute;
     top: 100%;
@@ -215,7 +214,6 @@ body {
     display: none !important;
 }
 
-/* --- CONTENEDORES Y TARJETAS --- */
 .admin-card {
     background: #ffffff;
     padding: 1.55rem;
@@ -242,7 +240,6 @@ body {
     }
 }
 
-/* --- PRODUCTOS Y GRID --- */
 .search-bar-container {
     display: flex;
     gap: 0.75rem;
@@ -294,7 +291,6 @@ body {
     margin-bottom: 0.25rem;
 }
 
-/* --- ESTADÍSTICAS Y TABLAS --- */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -382,7 +378,6 @@ body {
     display: none;
 }
 
-/* --- MODAL DE CÁMARA --- */
 .modal {
     position: fixed;
     top: 0;
@@ -428,9 +423,6 @@ body {
     color: #1e293b;
 }
 
-/* ============================================================ */
-/* MEDIA QUERY MOVIL: ANCHO MAXIMO 768px                        */
-/* ============================================================ */
 @media screen and (max-width: 768px) {
     body {
         font-size: 14px;
@@ -563,9 +555,6 @@ body {
     }
 }
 
-/* ============================================================ */
-/* MEDIA QUERY ESCRITORIO: ANCHO MINIMO 769px                   */
-/* ============================================================ */
 @media screen and (min-width: 769px) {
     #menu-toggle-btn {
         display: none !important;
