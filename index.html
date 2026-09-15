@@ -1,205 +1,486 @@
+<!-- RUTA: inventario-pro/index.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventario Pro</title>
+    <title>Inventario Pro - Multi-Tenant</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="offline-sync.js"></script>
 </head>
 <body>
-    <!-- Pantalla de Login Original -->
-    <div id="login-container" class="auth-container">
-        <div class="auth-card">
+
+    <div id="login-screen" class="screen">
+        <div class="login-card">
             <h2>Inventario Pro</h2>
-            <p>Inicie sesión para continuar</p>
             <form id="login-form">
                 <div class="form-group">
-                    <label>Correo Electrónico</label>
-                    <input type="email" id="login-email" required placeholder="correo@empresa.com">
+                    <label for="username">Correo Electronico</label>
+                    <input type="email" id="username" required autocomplete="email" placeholder="usuario@correo.com">
                 </div>
                 <div class="form-group">
-                    <label>Contraseña</label>
-                    <input type="password" id="login-password" required placeholder="********">
+                    <label for="password">Contrasena</label>
+                    <input type="password" id="password" required autocomplete="current-password">
                 </div>
-                <button type="submit" class="btn-primary">Iniciar Sesión</button>
+                <button type="submit" id="login-btn" class="btn-primary">Ingresar</button>
+                <div id="login-alert" class="alert hidden"></div>
             </form>
         </div>
     </div>
 
-    <!-- Contenedor Principal de la App (Oculto hasta iniciar sesión) -->
-    <div id="app" style="display: none;">
-        <header class="main-header">
-            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 10px;">
-                <h1>Inventario Pro</h1>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <span id="user-display-email" style="font-size: 0.9rem; font-weight: bold; color: #475569;"></span>
-                    <button id="logout-btn" class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">Cerrar Sesión</button>
+    <div id="dashboard-screen" class="screen hidden">
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button type="button" id="menu-toggle-btn" class="hamburger-btn">&#9776;</button>
+                <div class="user-info">
+                    <span id="user-display-name">Usuario</span>
                 </div>
             </div>
-            <nav id="main-nav" style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap;">
-                <!-- Los botones del menú se generan dinámicamente según el rol -->
+            <div class="top-actions">
+                <button id="logout-btn" class="btn-secondary">Salir</button>
+            </div>
+
+            <nav class="nav-tabs" id="nav-tabs-container">
+                <button class="tab-btn active" data-target="tab-inventory">Productos</button>
+                <button class="tab-btn menu-tab" data-target="tab-ingress" style="display: none;">Ingreso Pro</button>
+                <button class="tab-btn menu-tab" data-target="tab-egress" style="display: none;">Egreso / Despacho</button>
+                <button class="tab-btn menu-tab" data-target="tab-tenant-stats" style="display: none;">Estadisticas Deposito</button>
+                <button class="tab-btn menu-tab" data-target="tab-advanced-stats" style="display: none;">Analitica Pro</button>
+                <button class="tab-btn menu-tab" data-target="tab-admin-users" style="display: none;">Admin Empresas/Usuarios</button>
+                <button class="tab-btn menu-tab" data-target="tab-global-audit" style="display: none;">Auditoria Global</button>
             </nav>
         </header>
 
-        <main>
-            <!-- PESTAÑA: INGRESO DE MERCANCÍA -->
-            <section id="tab-ingress" class="tab-content">
-                <h2>Ingreso de Mercancía</h2>
-                <form id="ingress-form">
-                    <div class="form-group" style="position: relative;">
-                        <label>Código de Barras o Código Manual</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="ingress-code" required placeholder="Escanee o escriba el código o nombre..." autocomplete="off">
-                            <button type="button" id="scan-ingress-btn" class="btn-secondary">Cámara</button>
-                            <button type="button" id="search-master-btn" class="btn-secondary">Buscar</button>
-                        </div>
-                        <!-- Sugerencias dinámicas flotantes -->
-                        <div id="ingress-suggestions" class="autocomplete-suggestions hidden"></div>
-                    </div>
+        <main class="main-container">
+            <div id="tab-inventory" class="tab-content">
+                <div class="search-bar-container">
+                    <input type="text" id="search-input" placeholder="Buscar por nombre o codigo..." autocomplete="off">
+                    <button type="button" id="scan-search-btn" class="btn-icon">Escanear</button>
+                </div>
+                <div id="loading-indicator" class="loading hidden">Cargando productos...</div>
+                <div id="product-list" class="product-grid"></div>
+            </div>
 
-                    <div class="form-group">
-                        <label>Nombre del Producto</label>
-                        <input type="text" id="ingress-name" required placeholder="Nombre descriptivo del producto">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Precio de Venta ($)</label>
-                        <input type="number" step="0.01" id="ingress-price" required placeholder="0.00">
-                    </div>
-
-                    <fieldset class="form-group">
-                        <legend>Factores de Empaque (Conversión)</legend>
-                        <div style="display: flex; gap: 10px;">
-                            <div>
-                                <label>Unid. por Caja</label>
-                                <input type="number" id="factor-box" value="1" min="1">
+            <div id="tab-ingress" class="tab-content hidden">
+                <div class="admin-card" style="max-width: 700px; margin: 0 auto;">
+                    <h3>Modulo de Ingreso de Mercancia Pro</h3>
+                    <form id="ingress-form">
+                        <div class="form-group" style="position: relative;">
+                            <label>Codigo de Barras o Codigo Manual</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="ingress-code" required placeholder="Escanee, escriba el codigo o busque por nombre..." autocomplete="off">
+                                <button type="button" id="scan-ingress-btn" class="btn-secondary">Camara</button>
+                                <button type="button" id="search-master-btn" class="btn-secondary">Buscar</button>
                             </div>
-                            <div>
-                                <label>Unid. por Paquete</label>
-                                <input type="number" id="factor-pack" value="1" min="1">
+                            <!-- Contenedor flotante de sugerencias dinamicas -->
+                            <div id="ingress-suggestions" class="autocomplete-suggestions hidden"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre del Producto</label>
+                            <input type="text" id="ingress-name" required placeholder="Ej. Harina de Maiz 1kg">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="form-group">
+                                <label>Tipo de Ingreso</label>
+                                <select id="ingress-type" required>
+                                    <option value="compra">Compra a Proveedor / Nuevo</option>
+                                    <option value="transito">Recepcion en Transito</option>
+                                </select>
                             </div>
-                            <div>
-                                <label>Unid. por Bulto</label>
-                                <input type="number" id="factor-bale" value="1" min="1">
+                            <div class="form-group">
+                                <label>Precio de Venta ($)</label>
+                                <input type="number" step="0.01" id="ingress-price" value="0.00" required>
                             </div>
                         </div>
-                    </fieldset>
+                        <div style="background: #f8fafc; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+                            <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">Configuracion de Empaques (Unidades por factor)</label>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 5px;">
+                                <div>
+                                    <label style="font-size: 0.75rem;">Unidades por Caja</label>
+                                    <input type="number" id="factor-box" value="1" min="1">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem;">Unidades por Paquete</label>
+                                    <input type="number" id="factor-pack" value="1" min="1">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem;">Unidades por Bulto/Saco</label>
+                                    <input type="number" id="factor-bale" value="1" min="1">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="form-group">
+                                <label>Seleccionar Empaque</label>
+                                <select id="packaging-unit">
+                                    <option value="unidad">Unidades Sueltas</option>
+                                    <option value="caja">Cajas</option>
+                                    <option value="paquete">Paquetes</option>
+                                    <option value="bulto">Bultos / Sacos</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Cantidad de Empaques</label>
+                                <input type="number" step="any" id="ingress-quantity" value="1" required min="0.01">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary" style="width: 100%;">Registrar Ingreso de Mercancia</button>
+                    </form>
+                </div>
+            </div>
 
-                    <div class="form-group">
-                        <label>Unidad de Ingreso</label>
-                        <select id="packaging-unit">
-                            <option value="unidad">Unidades Sueltas</option>
-                            <option value="caja">Cajas</option>
-                            <option value="paquete">Paquetes</option>
-                            <option value="bulto">Bultos / Pacas</option>
-                        </select>
+            <div id="tab-egress" class="tab-content hidden">
+                <div class="admin-card" style="max-width: 700px; margin: 0 auto;">
+                    <h3>Modulo de Egreso y Despacho Pro</h3>
+                    <form id="egress-form">
+                        <div class="form-group" style="position: relative;">
+                            <label>Codigo del Producto o Escanear</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="egress-code" required placeholder="Escanee, escriba el codigo o busque por nombre..." autocomplete="off">
+                                <button type="button" id="scan-egress-btn" class="btn-secondary">Camara</button>
+                                <input type="file" id="camera-input-egress" accept="image/*" capture="environment" style="display: none;">
+                                <button type="button" id="search-egress-prod-btn" class="btn-secondary">Buscar</button>
+                            </div>
+                            <!-- Contenedor flotante de sugerencias dinamicas -->
+                            <div id="egress-suggestions" class="autocomplete-suggestions hidden"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Producto Seleccionado</label>
+                            <input type="text" id="egress-product-name" readonly placeholder="El nombre aparecera al buscar el codigo..." style="background: #f8fafc;">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="form-group">
+                                <label>Tipo de Egreso (Motivo)</label>
+                                <select id="egress-type" required>
+                                    <option value="venta">Sala de Ventas</option>
+                                    <option value="transito">En Transito (Otro Negocio/Deposito)</option>
+                                    <option value="danado">Danados / Merma</option>
+                                    <option value="cambio">En Espera de Cambio / Devolucion</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Stock Actual Disponible</label>
+                                <input type="text" id="egress-current-stock" readonly value="0" style="background: #f8fafc; font-weight: bold;">
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="form-group">
+                                <label>Empaque a Despachar</label>
+                                <select id="egress-packaging-unit">
+                                    <option value="unidad">Unidades Sueltas</option>
+                                    <option value="caja">Cajas</option>
+                                    <option value="paquete">Paquetes</option>
+                                    <option value="bulto">Bultos / Sacos</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Cantidad de Empaques</label>
+                                <input type="number" step="any" id="egress-quantity" value="1" required min="0.01">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary" style="width: 100%; background-color: #0f172a;">Procesar Egreso y Descontar Stock</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="tab-tenant-stats" class="tab-content hidden">
+                <div class="admin-card" style="max-width: 1000px; margin: 0 auto;">
+                    <h3>Panel de Control y Stock por Deposito</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                        <input type="text" id="tenant-search-input" placeholder="Buscar producto por nombre o codigo..." style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; max-width: 300px;">
+                        <button type="button" id="export-tenant-pdf-btn" class="btn-secondary">Exportar Informe PDF</button>
                     </div>
-
-                    <div class="form-group">
-                        <label>Cantidad a Ingresar</label>
-                        <input type="number" step="any" id="ingress-quantity" required placeholder="Cantidad en la unidad seleccionada">
+                    <div class="stats-grid" style="margin-bottom: 20px;">
+                        <div class="stat-box">
+                            <span class="stat-number" id="tenant-prod-count">0</span>
+                            <span class="stat-label">Referencias Registradas</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="tenant-total-stock">0</span>
+                            <span class="stat-label">Unidades Totales en Deposito</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="tenant-expired-count">0</span>
+                            <span class="stat-label">Fuera por Vencimiento (Merma)</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="tenant-pending-changes">0</span>
+                            <span class="stat-label">En Espera de Cambios</span>
+                        </div>
                     </div>
+                    <div class="table-container">
+                        <table class="audit-table">
+                            <thead>
+                                <tr>
+                                    <th>Codigo</th>
+                                    <th>Nombre del Producto</th>
+                                    <th>Stock Desglosado (Presentaciones)</th>
+                                    <th>Vencidos (Merma)</th>
+                                    <th>En Espera de Cambio</th>
+                                    <th>Estado / Alerta</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tenant-detailed-stats-body">
+                                <tr>
+                                    <td colspan="6" class="text-center">Cargando inventario del deposito...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-                    <button type="submit" class="btn-primary">Registrar Ingreso</button>
-                </form>
-            </section>
-
-            <!-- PESTAÑA: EGRESOS / DESPACHOS -->
-            <section id="tab-egress" class="tab-content" style="display: none;">
-                <h2>Egreso / Despacho de Mercancía</h2>
-                <form id="egress-form">
-                    <div class="form-group" style="position: relative;">
-                        <label>Código del Producto o Escanear</label>
+            <div id="tab-advanced-stats" class="tab-content hidden">
+                <div class="admin-card" style="max-width: 1200px; margin: 0 auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>Panel Ejecutivo de Analitica y Estadisticas Pro</h3>
                         <div style="display: flex; gap: 10px;">
-                            <input type="text" id="egress-code" required placeholder="Escanee o escriba el código o nombre..." autocomplete="off">
-                            <button type="button" id="scan-egress-btn" class="btn-secondary">Cámara</button>
-                            <input type="file" id="camera-input-egress" accept="image/*" capture="environment" style="display: none;">
-                            <button type="button" id="search-egress-prod-btn" class="btn-secondary">Buscar</button>
+                            <button type="button" id="export-pdf-btn" class="btn-secondary">Exportar Informe PDF</button>
+                            <button type="button" id="refresh-stats-btn" class="btn-primary" style="width: auto;">Actualizar Analitica</button>
                         </div>
-                        <!-- Sugerencias dinámicas flotantes de egreso -->
-                        <div id="egress-suggestions" class="autocomplete-suggestions hidden"></div>
                     </div>
-
-                    <div class="form-group">
-                        <label>Nombre del Producto</label>
-                        <input type="text" id="egress-product-name" readonly placeholder="Se cargará automáticamente">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Ambito de Analisis</label>
+                            <select id="stats-scope">
+                                <option value="global">Global (Todas las Empresas)</option>
+                                <option value="tenant">Empresa Especifica</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;" id="tenant-filter-container">
+                            <label>Seleccionar Empresa</label>
+                            <select id="stats-tenant-select">
+                                <option value="">Cargando empresas...</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Rango Temporal Exacto</label>
+                            <select id="stats-timeframe">
+                                <option value="diario">Diario (Hoy)</option>
+                                <option value="semanal">Semanal (Ultimos 7 dias)</option>
+                                <option value="mensual" selected>Mensual (Ultimo mes)</option>
+                                <option value="trimestral">Trimestral (Ultimos 3 meses)</option>
+                                <option value="semestral">Semestral (Ultimos 6 meses)</option>
+                                <option value="anual">Anual (Ultimo ano)</option>
+                                <option value="historico">Historico Completo</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Criterio de Rotacion</label>
+                            <select id="stats-sort-criterion">
+                                <option value="mayor_salida">Mayor Salida / Despacho</option>
+                                <option value="menor_salida">Menor Salida / Sin Movimiento</option>
+                                <option value="mayor_stock">Mayor Stock Actual</option>
+                                <option value="menor_stock">Menor Stock (Critico)</option>
+                            </select>
+                        </div>
                     </div>
-
-                    <div class="form-group">
-                        <label>Stock Actual Disponible</label>
-                        <input type="text" id="egress-current-stock" readonly value="0">
+                    <div style="background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <label style="font-weight: bold; color: #1e293b; font-size: 0.9rem;">Filtro Multi-Producto</label>
+                            <div style="display: flex; gap: 5px;">
+                                <button type="button" id="select-all-products" class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;">Seleccionar Visibles</button>
+                                <button type="button" id="clear-products-selection" class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;">Limpiar</button>
+                            </div>
+                        </div>
+                        <input type="text" id="stats-product-search-input" placeholder="Escribe para filtrar productos por nombre o codigo..." autocomplete="off" style="width: 100%; padding: 6px 10px; margin-bottom: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; outline: none;">
+                        <select id="stats-multi-products" multiple style="width: 100%; height: 100px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;"></select>
                     </div>
-
-                    <div class="form-group">
-                        <label>Cantidad a Egresar (Unidades)</label>
-                        <input type="number" step="any" id="egress-quantity" required placeholder="Cantidad de unidades">
+                    <div class="stats-grid" style="margin-bottom: 25px;">
+                        <div class="stat-box">
+                            <span class="stat-number" id="adv-stat-total-movements">0</span>
+                            <span class="stat-label">Movimientos en el Rango</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="adv-stat-units-dispatched">0</span>
+                            <span class="stat-label">Unidades Totales en Stock</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="adv-stat-top-product">N/A</span>
+                            <span class="stat-label">Producto Estrella (Mayor Salida)</span>
+                        </div>
                     </div>
-
-                    <button type="submit" class="btn-primary">Procesar Egreso</button>
-                </form>
-            </section>
-
-            <!-- PESTAÑA: ESTADISTICAS -->
-            <section id="tab-estadisticas" class="tab-content" style="display: none;">
-                <h2>Estadísticas Generales</h2>
-                <div id="estadisticas-content">Cargando estadísticas...</div>
-            </section>
-
-            <!-- PESTAÑA: DEPOSITO (TENANT STATS) -->
-            <section id="tab-tenant-stats" class="tab-content" style="display: none;">
-                <h2>Control y Stock por Depósito</h2>
-                <div class="form-group">
-                    <input type="text" id="tenant-search-input" placeholder="Buscar en el inventario del depósito..." autocomplete="off">
+                    <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 25px;">
+                        <h4 style="margin-bottom: 10px; color: #1e293b;">Grafica Analitica de Rotacion y Salidas</h4>
+                        <div style="position: relative; height: 320px; width: 100%;">
+                            <canvas id="statsChart"></canvas>
+                        </div>
+                    </div>
+                    <h4 style="margin-bottom: 10px; color: #1e293b;">Tabla de Movimientos y Rotacion Pura (Alta Precision)</h4>
+                    <div class="table-container">
+                        <table class="audit-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Empresa / Tenant</th>
+                                    <th>Codigo</th>
+                                    <th>Nombre del Producto</th>
+                                    <th>Stock Actual</th>
+                                    <th>Salidas en Periodo</th>
+                                    <th>Clasificacion de Rotacion</th>
+                                </tr>
+                            </thead>
+                            <tbody id="advanced-stats-table-body">
+                                <tr>
+                                    <td colspan="7" class="text-center">Cargando motor analitico...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                    <button type="button" id="export-tenant-pdf-btn" class="btn-secondary">Exportar Informe PDF</button>
+            </div>
+
+            <div id="tab-admin-users" class="tab-content hidden">
+                <div class="admin-sections" style="grid-template-columns: 1fr 1fr;">
+                    <div class="admin-card">
+                        <h4>Registrar Nueva Empresa (Tenant)</h4>
+                        <form id="create-company-form">
+                            <div class="form-group">
+                                <label>Nombre de la Empresa</label>
+                                <input type="text" id="company-name" required placeholder="Ej. Distribuidora C.A.">
+                            </div>
+                            <button type="submit" class="btn-primary">Crear Empresa</button>
+                        </form>
+                    </div>
+                    <div class="admin-card">
+                        <h4>Registrar Usuario por Empresa</h4>
+                        <form id="create-user-form">
+                            <div class="form-group">
+                                <label>Seleccionar Empresa</label>
+                                <select id="company-select" required>
+                                    <option value="">Cargando empresas...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Rol del Usuario</label>
+                                <select id="user-role-select" required>
+                                    <option value="">Cargando roles...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Correo del Usuario</label>
+                                <input type="email" id="new-user-email" required placeholder="usuario@empresa.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Contrasena Temporal</label>
+                                <input type="password" id="new-user-password" required placeholder="Minimo 6 caracteres">
+                            </div>
+                            <button type="submit" class="btn-primary">Crear y Asignar Usuario</button>
+                        </form>
+                    </div>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                    <div style="background: #f1f5f9; padding: 15px; border-radius: 6px;">
-                        <span style="font-size: 0.85rem; color: #64748b;">Total Productos</span>
-                        <h3 id="tenant-prod-count" style="margin: 5px 0 0 0; font-size: 1.5rem;">0</h3>
-                    </div>
-                    <div style="background: #f1f5f9; padding: 15px; border-radius: 6px;">
-                        <span style="font-size: 0.85rem; color: #64748b;">Stock Acumulado</span>
-                        <h3 id="tenant-total-stock" style="margin: 5px 0 0 0; font-size: 1.5rem;">0</h3>
-                    </div>
-                    <div style="background: #f1f5f9; padding: 15px; border-radius: 6px;">
-                        <span style="font-size: 0.85rem; color: #64748b;">Productos Vencidos</span>
-                        <h3 id="tenant-expired-count" style="margin: 5px 0 0 0; font-size: 1.5rem; color: #dc2626;">0</h3>
-                    </div>
-                    <div style="background: #f1f5f9; padding: 15px; border-radius: 6px;">
-                        <span style="font-size: 0.85rem; color: #64748b;">Esperando Cambio</span>
-                        <h3 id="tenant-pending-changes" style="margin: 5px 0 0 0; font-size: 1.5rem; color: #d97706;">0</h3>
+                <div class="admin-card" style="margin-top: 20px;">
+                    <h4>Listado, Edicion y Eliminacion de Usuarios</h4>
+                    <div class="table-container">
+                        <table class="audit-table">
+                            <thead>
+                                <tr>
+                                    <th>Correo / Usuario</th>
+                                    <th>Empresa Asignada</th>
+                                    <th>Rol ID</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-list-body">
+                                <tr>
+                                    <td colspan="4" class="text-center">Cargando usuarios...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid #cbd5e1; background: #f8fafc;">
-                                <th style="padding: 10px;">Código</th>
-                                <th style="padding: 10px;">Producto</th>
-                                <th style="padding: 10px;">Stock Desglosado</th>
-                                <th style="padding: 10px;">Vencidos</th>
-                                <th style="padding: 10px;">Cambios</th>
-                                <th style="padding: 10px;">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tenant-detailed-stats-body">
-                            <tr><td colspan="6" class="text-center">Cargando inventario del depósito...</td></tr>
-                        </tbody>
-                    </table>
+            </div>
+
+            <div id="tab-global-audit" class="tab-content hidden">
+                <div class="admin-card" style="margin-bottom: 20px;">
+                    <h4>Estadisticas Globales del Sistema</h4>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <span class="stat-number" id="stat-tenants">0</span>
+                            <span class="stat-label">Empresas Totales</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="stat-users">0</span>
+                            <span class="stat-label">Usuarios Totales</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="stat-products">0</span>
+                            <span class="stat-label">Productos Globales</span>
+                        </div>
+                    </div>
                 </div>
-            </section>
+                <div class="admin-card">
+                    <h4>Auditoria Global de Actividad</h4>
+                    <div class="table-container">
+                        <table class="audit-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Accion</th>
+                                    <th>Entidad</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-log-body">
+                                <tr>
+                                    <td colspan="3" class="text-center">Cargando registros de auditoria...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
-    <!-- Scripts de la aplicacion -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="roles.js"></script>
-    <script src="offline-sync.js"></script>
+    <div id="scanner-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 450px; text-align: center;">
+            <div class="modal-header">
+                <h3>Escáner de Codigo</h3>
+                <button id="close-scanner-btn" class="close-btn">&times;</button>
+            </div>
+            <div style="padding: 0.5rem 0;">
+                <div id="reader" style="width: 100%; border-radius: 8px; overflow: hidden;"></div>
+            </div>
+            <p style="font-size: 0.85rem; color: #64748b; margin-top: 10px;">Apunta la camara de tu celular hacia el codigo de barras o QR.</p>
+        </div>
+    </div>
+
+    <div id="edit-user-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Usuario</h3>
+                <button id="close-edit-modal-btn" class="close-btn">&times;</button>
+            </div>
+            <form id="edit-user-form">
+                <input type="hidden" id="edit-user-id">
+                <div class="form-group">
+                    <label>Correo Electronico (Usuario)</label>
+                    <input type="email" id="edit-user-email" required>
+                </div>
+                <div class="form-group">
+                    <label>Nueva Contrasena (Opcional)</label>
+                    <input type="password" id="edit-user-password" placeholder="Dejar en blanco para no cambiar">
+                </div>
+                <div class="form-group">
+                    <label>Reasignar Empresa</label>
+                    <select id="edit-user-company" required></select>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" id="cancel-edit-btn" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="app.js"></script>
     <script src="egresos.js"></script>
-    <script src="estadisticas.js"></script>
     <script src="tenant-stats.js"></script>
+    <script src="estadisticas.js"></script>
+    <script src="roles.js"></script>
 </body>
 </html>
