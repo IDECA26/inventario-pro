@@ -477,8 +477,11 @@ async function handleSearchMasterProduct() {
     }
 }
 
+// RUTA: inventario-pro/app.js (Funcion modificada para soporte offline)
+
 async function handleIngressMercancia(e) {
     e.preventDefault();
+
     const code = document.getElementById('ingress-code').value.trim();
     const name = document.getElementById('ingress-name').value.trim();
     const price = parseFloat(document.getElementById('ingress-price').value) || 0;
@@ -486,53 +489,102 @@ async function handleIngressMercancia(e) {
     const boxFactor = parseFloat(document.getElementById('factor-box').value) || 1;
     const packFactor = parseFloat(document.getElementById('factor-pack').value) || 1;
     const baleFactor = parseFloat(document.getElementById('factor-bale').value) || 1;
+
     const packagingUnit = document.getElementById('packaging-unit').value;
     const qtyEntered = parseFloat(document.getElementById('ingress-quantity').value) || 0;
-
-    let totalUnitsToAdd = qtyEntered;
-    if (packagingUnit === 'caja') totalUnitsToAdd = qtyEntered * boxFactor;
-    else if (packagingUnit === 'paquete') totalUnitsToAdd = qtyEntered * packFactor;
-    else if (packagingUnit === 'bulto') totalUnitsToAdd = qtyEntered * baleFactor;
 
     try {
         let tenantId = null;
         if (state.user.email !== 'altuna.g1@gmail.com') {
-            const { data: userData, error: userLookupError } = await supabaseClient.from('users').select('tenant_id').eq('username', state.user.email).maybeSingle();
-            if (userLookupError || !userData || !userData.tenant_id) throw new Error('Tu usuario no tiene un tenant_id asociado.');
+            const { data: userData, error: userLookupError } = await supabaseClient
+                .from('users')
+                .select('tenant_id')
+                .eq('username', state.user.email)
+                .maybeSingle();
+
+            if (userLookupError || !userData || !userData.tenant_id) {
+                throw new Error('Tu usuario no tiene un tenant_id asociado en la base de datos.');
+            }
             tenantId = userData.tenant_id;
         } else {
             const { data: tenants } = await supabaseClient.from('tenants').select('id').limit(1).maybeSingle();
             if (tenants) tenantId = tenants.id;
         }
 
-        if (!tenantId) throw new Error('No se pudo determinar la empresa para registrar el stock.');
+        if (!tenantId) throw new Error('No se pudo determinar la empresa (tenant) para registrar el stock.');
 
-        let { data: existingProd } = await supabaseClient.from('products').select('*').or(`code.eq.${code},barcode.eq.${code}`).maybeSingle();
+        const payloadAccion = {
+            code, name, price, boxFactor, packFactor, baleFactor, packagingUnit, qtyEntered, tenantId
+        };
+
+        // INTERCEPCION OFFLINE: Si no hay internet, guardar localmente en dispositivo
+        if (!navigator.onLine) {
+            const guardadoLocal = guardarAccionOffline('INGRESAR_MERCANCIA', payloadAccion);
+            if (guardadoLocal) {
+                alert('Sin conexion a internet. El ingreso se ha guardado de forma segura en el dispositivo y se sincronizara automaticamente en orden cronologico al recuperar la red.');
+                document.getElementById('ingress-form').reset();
+            } else {
+                alert('Error al almacenar el registro localmente.');
+            }
+            return;
+        }
+
+        // Flujo normal con internet activo
+        let totalUnitsToAdd = qtyEntered;
+        if (packagingUnit === 'caja') totalUnitsToAdd = qtyEntered * boxFactor;
+        else if (packagingUnit === 'paquete') totalUnitsToAdd = qtyEntered * packFactor;
+        else if (packagingUnit === 'bulto') totalUnitsToAdd = qtyEntered * baleFactor;
+
+        let { data: existingProd } = await supabaseClient
+            .from('products')
+            .select('*')
+            .or(`code.eq.${code},barcode.eq.${code}`)
+            .maybeSingle();
+
         let productId;
 
         if (existingProd) {
             productId = existingProd.id;
-            await supabaseClient.from('products').update({ box_factor: boxFactor, pack_factor: packFactor, bale_factor: baleFactor, sale_price: price }).eq('id', productId);
+            await supabaseClient.from('products').update({
+                box_factor: boxFactor,
+                pack_factor: packFactor,
+                bale_factor: baleFactor,
+                sale_price: price
+            }).eq('id', productId);
         } else {
             productId = crypto.randomUUID();
-            const { error: insertProdError } = await supabaseClient.from('products').insert([{
-                id: productId, tenant_id: tenantId, code: code, barcode: code, name: name, sale_price: price,
-                box_factor: boxFactor, pack_factor: packFactor, bale_factor: baleFactor, stock: 0 
-            }]);
+            const { error: insertProdError } = await supabaseClient
+                .from('products')
+                .insert([{
+                    id: productId,
+                    tenant_id: tenantId,
+                    code: code,
+                    barcode: code,
+                    name: name,
+                    sale_price: price,
+                    box_factor: boxFactor,
+                    pack_factor: packFactor,
+                    bale_factor: baleFactor,
+                    stock: 0 
+                }]);
             if (insertProdError) throw insertProdError;
         }
 
         const currentStock = existingProd && existingProd.stock ? parseFloat(existingProd.stock) : 0;
         const newStock = currentStock + totalUnitsToAdd;
 
-        const { error: updateStockError } = await supabaseClient.from('products').update({ stock: newStock }).eq('id', productId);
+        const { error: updateStockError } = await supabaseClient
+            .from('products')
+            .update({ stock: newStock })
+            .eq('id', productId);
+
         if (updateStockError) throw updateStockError;
 
-        alert(`Ingreso exitoso! Se sumaron ${totalUnitsToAdd} unidades al inventario.`);
+        alert(`¡Ingreso exitoso! Se sumaron ${totalUnitsToAdd} unidades al inventario.`);
         document.getElementById('ingress-form').reset();
         loadProducts(); 
     } catch (error) {
-        console.error('Error en el ingreso de mercancia:', error);
+        console.error('Error en el ingreso de mercancía:', error);
         alert('Error al procesar el ingreso: ' + error.message);
     }
 }
